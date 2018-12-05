@@ -28,9 +28,32 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
- #include "FWCore/Utilities/interface/InputTag.h"
- #include "DataFormats/TrackReco/interface/Track.h"
- #include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+#include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
+
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/CommonDetUnit/interface/GeomDet.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+#include "FWCore/Framework/interface/ConsumesCollector.h"
+#include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
+
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+#include "DataFormats/SiPixelDetId/interface/PixelSubdetector.h"
+#include "DataFormats/Common/interface/DetSetVectorNew.h"
+#include "DataFormats/Common/interface/DetSetVector.h"
+#include "DataFormats/DetId/interface/DetId.h"
+#include "DataFormats/Common/interface/Handle.h"
+//#include "DataFormats/Phase2TrackerCluster/interface/Phase2TrackerCluster1D.h"
+//#include "DataFormats/Phase2TrackerDigi/interface/Phase2TrackerDigi.h"
+#include "DataFormats/SiPixelDigi/interface/PixelDigi.h"
+
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "CommonTools/Utils/interface/TFileDirectory.h"
+
+#include <TH2F.h>
+
 //
 // class declaration
 //
@@ -41,7 +64,6 @@
 // This will improve performance in multithreaded jobs.
 
 
-using reco::TrackCollection;
 
 class ITclusterAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
    public:
@@ -57,7 +79,9 @@ class ITclusterAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>
       virtual void endJob() override;
 
       // ----------member data ---------------------------
-      edm::EDGetTokenT<TrackCollection> tracksToken_;  //used to select what tracks to read from configuration file
+      edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
+      uint32_t m_maxBin;
+      TH2F* m_diskHistos[8];
 };
 
 //
@@ -73,10 +97,13 @@ class ITclusterAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>
 //
 ITclusterAnalyzer::ITclusterAnalyzer(const edm::ParameterSet& iConfig)
  :
-  tracksToken_(consumes<TrackCollection>(iConfig.getUntrackedParameter<edm::InputTag>("tracks")))
+  //m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>> ("clusters"))
+  m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>> (iConfig.getParameter<edm::InputTag>("clusters"))),
+  m_maxBin(iConfig.getUntrackedParameter<uint32_t>("maxBin",1000))
 
 {
    //now do what ever initialization is needed
+
 
 }
 
@@ -94,38 +121,40 @@ ITclusterAnalyzer::~ITclusterAnalyzer()
 // member functions
 //
 
-// ------------ method called for each event  ------------
-void
-ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
-{
-   using namespace edm;
-
-    Handle<TrackCollection> tracks;
-    iEvent.getByToken(tracksToken_, tracks);
-    for(TrackCollection::const_iterator itTrack = tracks->begin();
-        itTrack != tracks->end();
-        ++itTrack) {
-      // do something with track parameters, e.g, plot the charge.
-      // int charge = itTrack->charge();
-    }
-
-#ifdef THIS_IS_AN_EVENT_EXAMPLE
-   Handle<ExampleData> pIn;
-   iEvent.getByLabel("example",pIn);
-#endif
-
-#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
-   ESHandle<SetupData> pSetup;
-   iSetup.get<SetupRecord>().get(pSetup);
-#endif
-}
-
-
 // ------------ method called once each job just before starting event loop  ------------
 void
 ITclusterAnalyzer::beginJob()
 {
+    edm::Service<TFileService> fs; 
+    fs->file().cd("/");
+    TFileDirectory td = fs->mkdir("Common");
+    //now lets create the histograms
+    for(unsigned int i=0; i <8; i++)
+    {
+        std::stringstream histoname;
+        histoname << "Number of clusters for Disk " << i <<";Ring;# of Clusters";
+        //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+        m_diskHistos[i] = td.make<TH2F>(histoname.str().c_str(),histoname.str().c_str(),5,0,5, m_maxBin, 0, m_maxBin);
+    }
 }
+
+// ------------ method called for each event  ------------
+void
+ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{
+    //get the clusters
+    edm::Handle<edmNew::DetSetVector<SiPixelCluster>> clusters;
+    iEvent.getByToken(m_tokenClusters, clusters);
+
+    // Get the geometry
+         edm::ESHandle< TrackerGeometry > geomHandle;
+         iSetup.get< TrackerDigiGeometryRecord >().get("idealForDigi", geomHandle);
+         const TrackerGeometry* tkGeom = &(*geomHandle);
+         edm::ESHandle< TrackerTopology > tTopoHandle;
+         iSetup.get< TrackerTopologyRcd >().get(tTopoHandle);
+         const TrackerTopology* tTopo = tTopoHandle.product();
+}
+
 
 // ------------ method called once each job just after ending the event loop  ------------
 void
