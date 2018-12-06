@@ -84,6 +84,8 @@ class ITclusterAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>
 
       //array of TH2F
       TH2F* m_diskHistos[8];
+      TH2F* m_trackerLayout;
+      TH2F* m_trackerLayoutXY;
 };
 
 //
@@ -129,7 +131,7 @@ ITclusterAnalyzer::beginJob()
 {
     edm::Service<TFileService> fs; 
     fs->file().cd("/");
-    TFileDirectory td = fs->mkdir("Common");
+    TFileDirectory td = fs->mkdir("PerDisk");
 
     //now lets create the histograms
     for(unsigned int i=0; i <8; i++)
@@ -142,6 +144,10 @@ ITclusterAnalyzer::beginJob()
         //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
         m_diskHistos[i] = td.make<TH2F>(histotitle.str().c_str(),histoname.str().c_str(),5,.5,5.5, m_maxBin, 0, m_maxBin);
     }
+    fs->file().cd("/");
+    td = fs->mkdir("Common");
+    m_trackerLayout = td.make< TH2F >("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
+    m_trackerLayoutXY = td.make< TH2F >("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
 }
 
 // ------------ method called for each event  ------------
@@ -203,8 +209,8 @@ ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         }
 
         // Get the geomdet
-        //const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
-        //if (!geomDetUnit) continue;
+        const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
+        if (!geomDetUnit) continue;
         //std::cout << geomDetUnit << std::endl;
         
         unsigned int nClu = 0;
@@ -214,6 +220,14 @@ ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
             nClu++;
             cluCounter[hist_id][ring_id]++;
             //here could run more checks or get local or global position using the GeomDetUnit to find overlaps etc
+            // determine the position
+            MeasurementPoint mpClu(cluit->x(), cluit->y());
+            Local3DPoint localPosClu = geomDetUnit->topology().localPosition(mpClu);
+            Global3DPoint globalPosClu = geomDetUnit->surface().toGlobal(localPosClu);
+
+            //fill TkLayout histos
+            m_trackerLayout->Fill(globalPosClu.z(), globalPosClu.perp());
+            m_trackerLayoutXY->Fill(globalPosClu.x(), globalPosClu.y());
         }
 
         std::cout << "Found a Phase 2 TEPX module with " << nClu << " clusters for side "<< side << " layer " <<layer <<" ring " << ring << " will end in histogram "<<hist_id <<"!" << std::endl;
