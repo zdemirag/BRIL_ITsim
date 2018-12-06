@@ -81,6 +81,8 @@ class ITclusterAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>
       // ----------member data ---------------------------
       edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
       uint32_t m_maxBin;
+
+      //array of TH2F
       TH2F* m_diskHistos[8];
 };
 
@@ -128,13 +130,14 @@ ITclusterAnalyzer::beginJob()
     edm::Service<TFileService> fs; 
     fs->file().cd("/");
     TFileDirectory td = fs->mkdir("Common");
+
     //now lets create the histograms
     for(unsigned int i=0; i <8; i++)
     {
         std::stringstream histoname;
         histoname << "Number of clusters for Disk " << i <<";Ring;# of Clusters";
         //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-        m_diskHistos[i] = td.make<TH2F>(histoname.str().c_str(),histoname.str().c_str(),5,0,5, m_maxBin, 0, m_maxBin);
+        m_diskHistos[i] = td.make<TH2F>(histoname.str().c_str(),histoname.str().c_str(),4,0,4, m_maxBin, 0, m_maxBin);
     }
 }
 
@@ -147,12 +150,14 @@ ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     iEvent.getByToken(m_tokenClusters, clusters);
 
     // Get the geometry
-         edm::ESHandle< TrackerGeometry > geomHandle;
-         iSetup.get< TrackerDigiGeometryRecord >().get("idealForDigi", geomHandle);
-         const TrackerGeometry* tkGeom = &(*geomHandle);
-         edm::ESHandle< TrackerTopology > tTopoHandle;
-         iSetup.get< TrackerTopologyRcd >().get(tTopoHandle);
-         const TrackerTopology* tTopo = tTopoHandle.product();
+    edm::ESHandle< TrackerGeometry > geomHandle;
+    iSetup.get< TrackerDigiGeometryRecord >().get("idealForDigi", geomHandle);
+    const TrackerGeometry* tkGeom = &(*geomHandle);
+    edm::ESHandle< TrackerTopology > tTopoHandle;
+    iSetup.get< TrackerTopologyRcd >().get(tTopoHandle);
+    const TrackerTopology* tTopo = tTopoHandle.product();
+
+    //now is the time to loop the clusters
 }
 
 
