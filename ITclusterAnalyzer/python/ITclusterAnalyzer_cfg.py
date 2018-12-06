@@ -40,7 +40,7 @@ process.source = cms.Source("PoolSource",
 process.clusterAnalysis = cms.EDAnalyzer('ITclusterAnalyzer',
                                          clusters=cms.InputTag(
                                              "siPixelClusters"),
-                                         maxBin=cms.untracked.uint32(1000)
+                                         maxBin=cms.untracked.uint32(800)
                                          )
 
 # the TFIleService that produces the output root files

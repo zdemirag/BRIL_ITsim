@@ -134,10 +134,13 @@ ITclusterAnalyzer::beginJob()
     //now lets create the histograms
     for(unsigned int i=0; i <8; i++)
     {
+        int disk = (i<4)? i-4 : i-3;
         std::stringstream histoname;
-        histoname << "Number of clusters for Disk " << i <<";Ring;# of Clusters";
+        histoname << "Number of clusters for Disk " << disk <<";Ring;# of Clusters per event";
+        std::stringstream histotitle;
+        histotitle << "Number of clusters for Disk " << disk;
         //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-        m_diskHistos[i] = td.make<TH2F>(histoname.str().c_str(),histoname.str().c_str(),4,0,4, m_maxBin, 0, m_maxBin);
+        m_diskHistos[i] = td.make<TH2F>(histotitle.str().c_str(),histoname.str().c_str(),5,.5,5.5, m_maxBin, 0, m_maxBin);
     }
 }
 
@@ -146,18 +149,76 @@ void
 ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
     //get the clusters
-    edm::Handle<edmNew::DetSetVector<SiPixelCluster>> clusters;
-    iEvent.getByToken(m_tokenClusters, clusters);
+    edm::Handle<edmNew::DetSetVector<SiPixelCluster>> tclusters;
+    iEvent.getByToken(m_tokenClusters, tclusters);
 
     // Get the geometry
-    edm::ESHandle< TrackerGeometry > geomHandle;
-    iSetup.get< TrackerDigiGeometryRecord >().get("idealForDigi", geomHandle);
-    const TrackerGeometry* tkGeom = &(*geomHandle);
+    edm::ESHandle< TrackerGeometry > tgeomHandle;
+    iSetup.get< TrackerDigiGeometryRecord >().get("idealForDigi", tgeomHandle);
+    
+    // Get the topology
     edm::ESHandle< TrackerTopology > tTopoHandle;
     iSetup.get< TrackerTopologyRcd >().get(tTopoHandle);
-    const TrackerTopology* tTopo = tTopoHandle.product();
 
-    //now is the time to loop the clusters
+    //get the pointers to geometry, topology and clusters
+    const TrackerTopology* tTopo = tTopoHandle.product();
+    //const TrackerGeometry* tkGeom = &(*geomHandle);
+    const TrackerGeometry* tkGeom = tgeomHandle.product();
+    const edmNew::DetSetVector<SiPixelCluster>* clusters = tclusters.product();
+
+    //a 2D counter array to count the number of clusters per disk and per ring
+    unsigned int cluCounter[8][5];
+    memset(cluCounter, 0, sizeof(cluCounter));
+
+    //loop the modules in the cluster collection
+    for (typename edmNew::DetSetVector<SiPixelCluster>::const_iterator DSVit = clusters->begin(); DSVit != clusters->end(); DSVit++)
+    {
+        //get the detid
+        unsigned int rawid(DSVit->detId());
+        DetId detId(rawid);
+        TrackerGeometry::ModuleType mType = tkGeom->getDetectorType(detId);
+        if(mType != TrackerGeometry::ModuleType::Ph2PXF && detId.subdetId() != PixelSubdetector::PixelEndcap) continue;
+
+        //find out which layer, side and ring
+        unsigned int side = (tTopo->pxfSide(detId)); // values are 1 and 2 for -+Z
+        unsigned int layer= (tTopo->pxfDisk(detId)); //values are 1 to 12 for disks TFPX1 to TFPX 8  and TEPX1 to TEPX 4
+        unsigned int ring = (tTopo->pxfBlade(detId));
+
+        //now make sure we are only looking at TEPX
+        if(layer < 9) continue;
+
+        //the index in my histogram map
+        int hist_id = -1;
+        unsigned int ring_id = ring-1;
+        
+        if(side == 1)
+        {
+            //this is a TEPX- hit on side1
+            hist_id = layer - 9;
+        }
+        else if (side ==2)
+        {
+            //this is a TEPX+ hit on side 2
+            hist_id = 4+layer-9;
+        }
+
+        // Get the geomdet
+        //const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
+        //if (!geomDetUnit) continue;
+        //std::cout << geomDetUnit << std::endl;
+        
+        unsigned int nClu = 0;
+        //now loop the clusters for each detector
+        for(edmNew::DetSet<SiPixelCluster>::const_iterator cluit = DSVit->begin(); cluit != DSVit->end(); cluit++)
+        {
+            nClu++;
+            cluCounter[hist_id][ring_id]++;
+            //here could run more checks or get local or global position using the GeomDetUnit to find overlaps etc
+        }
+
+        std::cout << "Found a Phase 2 TEPX module with " << nClu << " clusters for side "<< side << " layer " <<layer <<" ring " << ring << " will end in histogram "<<hist_id <<"!" << std::endl;
+        m_diskHistos[hist_id]->Fill(ring, cluCounter[hist_id][ring_id]);
+    }
 }
 
 
