@@ -73,7 +73,8 @@ private:
     virtual void beginJob() override;
     virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
     virtual void endJob() override;
-    bool findCoincidence(DetId, Global3DPoint);
+
+    bool findCoincidence(DetId, Global3DPoint, bool);
 
     // ----------member data ---------------------------
     edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
@@ -86,10 +87,8 @@ private:
 
     //max bins of Counting histogram
     uint32_t m_maxBin;
-    //flag for checking 2x coincidences
-    bool m_do2x;
-    //flag for checking 3x coincidences
-    bool m_do3x;
+    //flag for checking coincidences
+    bool m_docoincidence;
 
     //array of TH2F for clusters per disk per ring
     TH2F* m_diskHistosCluster[8];
@@ -108,6 +107,14 @@ private:
     //tracker maps for 2xcoinc
     TH2F* m_trackerLayout3xZR;
     TH2F* m_trackerLayout3xYX;
+
+    //simple residual histograms for the cuts
+    TH1F* m_residualX;
+    TH1F* m_residualY;
+    TH1F* m_residualZ;
+
+    //the number of clusters per module
+    TH1F* m_nClusters;
 
     //cuts for the coincidence
     double m_dx;
@@ -130,8 +137,7 @@ ITclusterAnalyzer::ITclusterAnalyzer(const edm::ParameterSet& iConfig)
     : //m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>> ("clusters"))
     m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("clusters")))
     , m_maxBin(iConfig.getUntrackedParameter<uint32_t>("maxBin"))
-    , m_do2x(iConfig.getUntrackedParameter<bool>("do2x"))
-    , m_do3x(iConfig.getUntrackedParameter<bool>("do3x"))
+    , m_docoincidence(iConfig.getUntrackedParameter<bool>("docoincidence"))
     , m_dx(iConfig.getParameter<double>("dx_cut"))
     , m_dy(iConfig.getParameter<double>("dy_cut"))
     , m_dz(iConfig.getParameter<double>("dz_cut"))
@@ -154,8 +160,20 @@ ITclusterAnalyzer::~ITclusterAnalyzer()
 void ITclusterAnalyzer::beginJob()
 {
     edm::Service<TFileService> fs;
+
     fs->file().cd("/");
-    TFileDirectory td = fs->mkdir("Clusters");
+    TFileDirectory td = fs->mkdir("Residuals");
+
+    m_residualX = td.make<TH1F>("ResidualsX", "ResidualsX;deltaX;counts", 1000, 0, 1);
+    m_residualY = td.make<TH1F>("ResidualsY", "ResidualsY;deltaY;counts", 1000, 0, 1);
+    m_residualZ = td.make<TH1F>("ResidualsZ", "ResidualsZ;deltaZ;counts", 300, 0, 3);
+
+    fs->file().cd("/");
+    td = fs->mkdir("perModule");
+    m_nClusters = td.make<TH1F>("Number of Clusters per module per event", "# of Clusters;# of Clusters; Occurence", 500, 0, 500);
+
+    fs->file().cd("/");
+    td = fs->mkdir("Clusters");
 
     //now lets create the histograms
     for (unsigned int i = 0; i < 8; i++) {
@@ -170,7 +188,7 @@ void ITclusterAnalyzer::beginJob()
     m_trackerLayoutClustersZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
     m_trackerLayoutClustersYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
 
-    if (m_do2x) {
+    if (m_docoincidence) {
         fs->file().cd("/");
         td = fs->mkdir("2xCoincidences");
         //now lets create the histograms
@@ -186,7 +204,8 @@ void ITclusterAnalyzer::beginJob()
         m_trackerLayout2xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
         m_trackerLayout2xYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
     }
-    if (m_do3x) {
+
+    if (m_docoincidence) {
         fs->file().cd("/");
         td = fs->mkdir("3xCoincidences");
         //now lets create the histograms
@@ -197,7 +216,7 @@ void ITclusterAnalyzer::beginJob()
             std::stringstream histotitle;
             histotitle << "Number of 3x Coincidences for Disk " << disk;
             //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-            m_diskHistos3x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 4, .5, 4.5, m_maxBin, 0, m_maxBin);
+            m_diskHistos3x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
         m_trackerLayout3xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
         m_trackerLayout3xYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
@@ -232,11 +251,16 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
     unsigned int x2Counter[8][5];
     memset(x2Counter, 0, sizeof(x2Counter));
 
+    unsigned int x3Counter[8][5];
+    memset(x3Counter, 0, sizeof(x3Counter));
+
     //loop the modules in the cluster collection
     for (typename edmNew::DetSetVector<SiPixelCluster>::const_iterator DSVit = clusters->begin(); DSVit != clusters->end(); DSVit++) {
         //get the detid
         unsigned int rawid(DSVit->detId());
         DetId detId(rawid);
+
+        //figure out the module type using the detID
         TrackerGeometry::ModuleType mType = tkGeom->getDetectorType(detId);
         if (mType != TrackerGeometry::ModuleType::Ph2PXF && detId.subdetId() != PixelSubdetector::PixelEndcap)
             continue;
@@ -266,14 +290,18 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
         const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
         if (!geomDetUnit)
             continue;
-        //std::cout << geomDetUnit << std::endl;
 
         unsigned int nClu = 0;
+
+        //fill the number of clusters for this module
+        m_nClusters->Fill(DSVit->size());
+
         //now loop the clusters for each detector
         for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = DSVit->begin(); cluit != DSVit->end(); cluit++) {
+            //increment the counters
             nClu++;
             cluCounter[hist_id][ring_id]++;
-            //here could run more checks or get local or global position using the GeomDetUnit to find overlaps etc
+
             // determine the position
             MeasurementPoint mpClu(cluit->x(), cluit->y());
             Local3DPoint localPosClu = geomDetUnit->topology().localPosition(mpClu);
@@ -284,18 +312,28 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
             m_trackerLayoutClustersYX->Fill(globalPosClu.x(), globalPosClu.y());
 
             //std::cout << globalPosClu.x() << " " << globalPosClu.y() << std::endl;
-            if (m_do2x) {
-                bool found = this->findCoincidence(detId, globalPosClu);
+            if (m_docoincidence) {
+                bool is3fold = false;
+                bool found = this->findCoincidence(detId, globalPosClu, is3fold);
                 if (found) {
                     x2Counter[hist_id][ring_id]++;
                     m_trackerLayout2xZR->Fill(globalPosClu.z(), globalPosClu.perp());
                     m_trackerLayout2xYX->Fill(globalPosClu.x(), globalPosClu.y());
+
+                    //done with 2 fold coincidences, now 3 fold
+                    //only if we have a 2 fold coincidence we can search for a third one in another ring
+                    found = false;
+                    is3fold = true;
+                    found = this->findCoincidence(detId, globalPosClu, is3fold);
+                    if (found) {
+                        x3Counter[hist_id][ring_id]++;
+                        m_trackerLayout3xZR->Fill(globalPosClu.z(), globalPosClu.perp());
+                        m_trackerLayout3xYX->Fill(globalPosClu.x(), globalPosClu.y());
+                    }
                 }
             }
         } //end of cluster loop
-
-        //std::cout << "Found a Phase 2 TEPX module with " << nClu << " clusters for side " << side << " layer " << layer << " ring " << ring << " will end in histogram " << hist_id << "!" << std::endl;
-    } //end of module loop
+    }     //end of module loop
 
     //ok, now I know the number of clusters per ring per disk and should fill the histogram once for this event
     for (unsigned int i = 0; i < 8; i++) {
@@ -303,10 +341,11 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
         for (unsigned int j = 0; j < 5; j++) {
             //and the rings
             m_diskHistosCluster[i]->Fill(j + 1, cluCounter[i][j]);
-            if (m_do2x)
+            if (m_docoincidence) {
                 m_diskHistos2x[i]->Fill(j + 1, x2Counter[i][j]);
+                m_diskHistos3x[i]->Fill(j + 1, x3Counter[i][j]);
+            }
         }
-        //std::cout << "Disk " << i << " has " << m_diskHistosCluster[i]->GetEntries() << " entries!" << std::endl;
     }
 }
 
@@ -331,7 +370,7 @@ void ITclusterAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descrip
     //descriptions.addDefault(desc);
 }
 
-bool ITclusterAnalyzer::findCoincidence(DetId thedetid, Global3DPoint theglobalPosClu)
+bool ITclusterAnalyzer::findCoincidence(DetId thedetid, Global3DPoint theglobalPosClu, bool is3x)
 {
     bool found = false;
     //get the side, layer & ring of the original cluster that I want to match to
@@ -360,13 +399,13 @@ bool ITclusterAnalyzer::findCoincidence(DetId thedetid, Global3DPoint theglobalP
         unsigned int module = (tTopo->pxfModule(detId));
 
         //if we are looking for 2x, only accept the same ring
-        if (m_do2x) {
+        if (!is3x) {
             if (ring != thering)
                 continue;
             //check that it is a neighboring module
             if (fabs(module - themodule) != 1)
                 continue;
-        } else if (m_do3x)
+        } else
         //if we do 3x, only accept ring +-1
         {
             if (fabs(thering - ring) != 1)
@@ -392,15 +431,26 @@ bool ITclusterAnalyzer::findCoincidence(DetId thedetid, Global3DPoint theglobalP
                 && fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
                 nClu++;
                 found = true;
-                std::cout << "Found matching cluster # " << nClu << std::endl;
-                std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << std::endl;
-                std::cout << "New      x: " << globalPosClu.x() << " y: " << globalPosClu.y() << " z: " << globalPosClu.z() << std::endl;
+                std::cout << "Found matching cluster # " << nClu << " ";
+                if (is3x)
+                    std::cout << "- this is a 3x coincidence!" << std::endl;
+                else
+                    std::cout << std::endl;
+
+                std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << " ring: " << thering << " module: " << themodule << std::endl;
+                std::cout << "New      x: " << globalPosClu.x() << " y: " << globalPosClu.y() << " z: " << globalPosClu.z() << " ring: " << ring << " module: " << module << std::endl;
+
+                if (!is3x) {
+                    m_residualX->Fill(fabs(globalPosClu.x() - theglobalPosClu.x()));
+                    m_residualY->Fill(fabs(globalPosClu.y() - theglobalPosClu.y()));
+                    m_residualZ->Fill(fabs(globalPosClu.z() - theglobalPosClu.z()));
+                }
             }
         } //end of cluster loop
         if (nClu > 1)
             std::cout << "Warning, found " << nClu << "Clusters within the cuts!" << std::endl;
-        else if (found && nClu == 1)
-            std::cout << "Found a Clusters within the cuts!" << std::endl;
+        //else if (found && nClu == 1)
+        //std::cout << "Found a Clusters within the cuts!" << std::endl;
     } //end of module loop
     return found;
 }

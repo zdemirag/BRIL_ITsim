@@ -49,11 +49,10 @@ process.source = cms.Source("PoolSource",
 process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterAnalyzer',
                                          clusters=cms.InputTag("siPixelClusters"),
                                          maxBin=cms.untracked.uint32(1000),
-                                         do2x=cms.untracked.bool(True),
-                                         do3x=cms.untracked.bool(False),
-                                         dx_cut=cms.double(0.1),
-                                         dy_cut=cms.double(0.1),
-                                         dz_cut=cms.double(1.0)
+                                         docoincidence=cms.untracked.bool(True),
+                                         dx_cut=cms.double(.11),
+                                         dy_cut=cms.double(.11),
+                                         dz_cut=cms.double(0.9)
                                          )
 
 # the TFIleService that produces the output root files
