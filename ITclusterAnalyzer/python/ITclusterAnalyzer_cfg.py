@@ -1,19 +1,32 @@
 # imports
 import FWCore.ParameterSet.Config as cms
+import FWCore.ParameterSet.VarParsing as VarParsing
+
 
 # create a new CMS process
 process = cms.Process("ITclusterAnalyzer")
 
+# set up the options
+options = VarParsing.VarParsing('analysis')
+#set up the defaults
+options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/ITsim/myPU_35sample/step3.root'
+options.outputFile='summary.root'
+options.maxEvents = -1 #all events
+
+#get and parse command line arguments
+
+#not sure these are needed
 # Import all the necessary files
 # process.load('Configuration.StandardSequences.Services_cff')
 # process.load('Configuration.EventContent.EventContent_cff')
-process.load('Configuration.Geometry.GeometryExtended2023D21Reco_cff')
 # process.load('Configuration.StandardSequences.MagneticField_38T_cff')
 # process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-
 # from Configuration.AlCa.GlobalTag import GlobalTag
 # process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 
+# load the geomtry that i modified
+process.load('Configuration.Geometry.GeometryExtended2023D21Reco_cff')
+process.load('Configuration.StandardSequences.MagneticField_38T_cff')
 
 # initialize MessageLogger and output report
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
@@ -23,30 +36,30 @@ process.MessageLogger.cerr.INFO = cms.untracked.PSet(
     limit=cms.untracked.int32(-1)
 )
 
-process.options = cms.untracked.PSet(wantSummary=cms.untracked.bool(True))
+process.options = cms.untracked.PSet(wantSummary=cms.untracked.bool(False))
 
-process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(options.maxEvents))
 
-# thge input file
+# the input file
 process.source = cms.Source("PoolSource",
-                            # replace 'myfile.root' with the source file you want to use
-                            fileNames=cms.untracked.vstring(
-
-                                'file:/afs/cern.ch/user/g/gauzinge/ITsim/myPU_35sample/step3.root'
-                            )
+                            fileNames=cms.untracked.vstring(options.inputFiles)
                             )
 
 # the config of my analyzer
-process.clusterAnalysis = cms.EDAnalyzer('ITclusterAnalyzer',
-                                         clusters=cms.InputTag(
-                                             "siPixelClusters"),
-                                         maxBin=cms.untracked.uint32(1000)
+process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterAnalyzer',
+                                         clusters=cms.InputTag("siPixelClusters"),
+                                         maxBin=cms.untracked.uint32(1000),
+                                         do2x=cms.untracked.bool(True),
+                                         do3x=cms.untracked.bool(False),
+                                         dx_cut=cms.double(0.1),
+                                         dy_cut=cms.double(0.1),
+                                         dz_cut=cms.double(1.0)
                                          )
 
 # the TFIleService that produces the output root files
 process.TFileService = cms.Service("TFileService",
-                                   fileName=cms.string('histos.root')
+                                   fileName=cms.string(options.outputFile)
                                    )
 
 
-process.p = cms.Path(process.clusterAnalysis)
+process.p = cms.Path(process.BRIL_IT_Analysis)
