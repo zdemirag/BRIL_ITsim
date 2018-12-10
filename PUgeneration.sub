@@ -1,0 +1,15 @@
+PU_parameter        = 35
+NEvents             = 10
+
+executable          = runSim.sh
+arguments           = $(PU_parameter) $(NEvents)
+output              = batchlog/runSim.$(ClusterId).$(ProcId).out
+error               = batchlog/runSim.$(ClusterId).$(ProcId).err
+log                 = batchlog/runSim.$(ClusterId).$(ProcId).log
+getenv              = True
+request_cpus        = 4
+
+
+transfer_output_remaps = "step3.root=PUSamples/step3_PU$(PU_parameter).$(ProcId).root"
++JobFlavour        = "workday"
+queue
