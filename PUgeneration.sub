@@ -6,10 +6,11 @@ arguments           = $(PU_parameter) $(NEvents)
 output              = batchlog/runSim.$(ClusterId).$(ProcId).out
 error               = batchlog/runSim.$(ClusterId).$(ProcId).err
 log                 = batchlog/runSim.$(ClusterId).$(ProcId).log
-getenv              = True
+transfer_input_files    = sandbox.tar.bz2
+#getenv              = True
 request_cpus        = 4
 
 
 transfer_output_remaps = "step3.root=PUSamples/step3_PU$(PU_parameter).$(ProcId).root"
-+JobFlavour        = "workday"
+#+JobFlavour        = "workday"
 queue
