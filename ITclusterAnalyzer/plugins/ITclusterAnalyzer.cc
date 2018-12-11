@@ -5,10 +5,10 @@
 //
 /**\class ITclusterAnalyzer ITclusterAnalyzer.cc BRIL_ITsim/ITclusterAnalyzer/plugins/ITclusterAnalyzer.cc
 
- Description: [one line class summary]
+Description: [one line class summary]
 
- Implementation:
-     [Notes on implementation]
+Implementation:
+[Notes on implementation]
 */
 //
 // Original Author:  Georg Auzinger
@@ -43,7 +43,6 @@
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/SiPixelDetId/interface/PixelSubdetector.h"
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
-//#include "DataFormats/Phase2TrackerCluster/interface/Phase2TrackerCluster1D.h"
 //#include "DataFormats/Phase2TrackerDigi/interface/Phase2TrackerDigi.h"
 #include "DataFormats/SiPixelDigi/interface/PixelDigi.h"
 
@@ -63,63 +62,65 @@
 // This will improve performance in multithreaded jobs.
 
 class ITclusterAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
-public:
-    explicit ITclusterAnalyzer(const edm::ParameterSet&);
-    ~ITclusterAnalyzer();
+    public:
+        explicit ITclusterAnalyzer(const edm::ParameterSet&);
+        ~ITclusterAnalyzer();
 
-    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+        static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
-private:
-    virtual void beginJob() override;
-    virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
-    virtual void endJob() override;
+    private:
+        virtual void beginJob() override;
+        virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
+        virtual void endJob() override;
 
-    bool findCoincidence(DetId, Global3DPoint, bool);
+        //bool findCoincidence(DetId, Global3DPoint, bool);
+        bool findCoincidence2x(DetId, Global3DPoint);
+        bool findCoincidence3x(DetId, Global3DPoint);
 
-    // ----------member data ---------------------------
-    edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
+        // ----------member data ---------------------------
+        edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
 
-    // the pointers to geometry, topology and clusters
-    // these are members so all functions can access them without passing as argument
-    const TrackerTopology* tTopo = NULL;
-    const TrackerGeometry* tkGeom = NULL;
-    const edmNew::DetSetVector<SiPixelCluster>* clusters = NULL;
+        // the pointers to geometry, topology and clusters
+        // these are members so all functions can access them without passing as argument
+        const TrackerTopology* tTopo = NULL;
+        const TrackerGeometry* tkGeom = NULL;
+        const edmNew::DetSetVector<SiPixelCluster>* clusters = NULL;
 
-    //max bins of Counting histogram
-    uint32_t m_maxBin;
-    //flag for checking coincidences
-    bool m_docoincidence;
+        //max bins of Counting histogram
+        uint32_t m_maxBin;
+        //flag for checking coincidences
+        bool m_docoincidence;
 
-    //array of TH2F for clusters per disk per ring
-    TH2F* m_diskHistosCluster[8];
-    //tracker maps for clusters
-    TH2F* m_trackerLayoutClustersZR;
-    TH2F* m_trackerLayoutClustersYX;
+        //array of TH2F for clusters per disk per ring
+        TH2F* m_diskHistosCluster[8];
+        //tracker maps for clusters
+        TH2F* m_trackerLayoutClustersZR;
+        TH2F* m_trackerLayoutClustersYX;
 
-    //array of TH2F for 2xcoinc per disk per ring
-    TH2F* m_diskHistos2x[8];
-    //tracker maps for 2xcoinc
-    TH2F* m_trackerLayout2xZR;
-    TH2F* m_trackerLayout2xYX;
+        //array of TH2F for 2xcoinc per disk per ring
+        TH2F* m_diskHistos2x[8];
+        //tracker maps for 2xcoinc
+        TH2F* m_trackerLayout2xZR;
+        TH2F* m_trackerLayout2xYX;
 
-    //array of TH2F for 3xcoinc per disk per ring
-    TH2F* m_diskHistos3x[8];
-    //tracker maps for 2xcoinc
-    TH2F* m_trackerLayout3xZR;
-    TH2F* m_trackerLayout3xYX;
+        //array of TH2F for 3xcoinc per disk per ring
+        TH2F* m_diskHistos3x[8];
+        //tracker maps for 2xcoinc
+        TH2F* m_trackerLayout3xZR;
+        TH2F* m_trackerLayout3xYX;
 
-    //simple residual histograms for the cuts
-    TH1F* m_residualX;
-    TH1F* m_residualY;
-    TH1F* m_residualZ;
+        //simple residual histograms for the cuts
+        TH1F* m_residualX;
+        TH1F* m_residualY;
+        TH1F* m_residualZ;
 
-    //the number of clusters per module
-    TH1F* m_nClusters;
+        //the number of clusters per module
+        TH1F* m_nClusters;
 
-    //cuts for the coincidence
-    double m_dx;
-    double m_dy;
-    double m_dz;
+        //cuts for the coincidence
+        double m_dx;
+        double m_dy;
+        double m_dz;
 };
 
 //
@@ -135,12 +136,12 @@ private:
 //
 ITclusterAnalyzer::ITclusterAnalyzer(const edm::ParameterSet& iConfig)
     : //m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>> ("clusters"))
-    m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("clusters")))
-    , m_maxBin(iConfig.getUntrackedParameter<uint32_t>("maxBin"))
-    , m_docoincidence(iConfig.getUntrackedParameter<bool>("docoincidence"))
-    , m_dx(iConfig.getParameter<double>("dx_cut"))
-    , m_dy(iConfig.getParameter<double>("dy_cut"))
-    , m_dz(iConfig.getParameter<double>("dz_cut"))
+        m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("clusters")))
+        , m_maxBin(iConfig.getUntrackedParameter<uint32_t>("maxBin"))
+        , m_docoincidence(iConfig.getUntrackedParameter<bool>("docoincidence"))
+        , m_dx(iConfig.getParameter<double>("dx_cut"))
+        , m_dy(iConfig.getParameter<double>("dy_cut"))
+        , m_dz(iConfig.getParameter<double>("dz_cut"))
 {
     //now do what ever initialization is needed
 }
@@ -264,6 +265,7 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
         TrackerGeometry::ModuleType mType = tkGeom->getDetectorType(detId);
         if (mType != TrackerGeometry::ModuleType::Ph2PXF && detId.subdetId() != PixelSubdetector::PixelEndcap)
             continue;
+        //std::cout << "DetID " << std::hex << "0x" << rawid << std::dec << " " << detId.det() << " " << detId.subdetId() << " " << ((rawid >> 23) & 0x3) << " " << ((rawid >> 18) & 0xF) << " " << ((rawid >> 12) & 0x3F) << " " << ((rawid >> 2) & 0xFF) << std::endl;
 
         //find out which layer, side and ring
         unsigned int side = (tTopo->pxfSide(detId));  // values are 1 and 2 for -+Z
@@ -313,8 +315,7 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
             //std::cout << globalPosClu.x() << " " << globalPosClu.y() << std::endl;
             if (m_docoincidence) {
-                bool is3fold = false;
-                bool found = this->findCoincidence(detId, globalPosClu, is3fold);
+                bool found = this->findCoincidence2x(detId, globalPosClu);
                 if (found) {
                     x2Counter[hist_id][ring_id]++;
                     m_trackerLayout2xZR->Fill(globalPosClu.z(), globalPosClu.perp());
@@ -323,8 +324,7 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
                     //done with 2 fold coincidences, now 3 fold
                     //only if we have a 2 fold coincidence we can search for a third one in another ring
                     found = false;
-                    is3fold = true;
-                    found = this->findCoincidence(detId, globalPosClu, is3fold);
+                    found = this->findCoincidence3x(detId, globalPosClu);
                     if (found) {
                         x3Counter[hist_id][ring_id]++;
                         m_trackerLayout3xZR->Fill(globalPosClu.z(), globalPosClu.perp());
@@ -370,56 +370,118 @@ void ITclusterAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descrip
     //descriptions.addDefault(desc);
 }
 
-bool ITclusterAnalyzer::findCoincidence(DetId thedetid, Global3DPoint theglobalPosClu, bool is3x)
+bool ITclusterAnalyzer::findCoincidence2x(DetId thedetid, Global3DPoint theglobalPosClu)
 {
     bool found = false;
-    //get the side, layer & ring of the original cluster that I want to match to
-    unsigned int theside = (tTopo->pxfSide(thedetid));
-    unsigned int thelayer = (tTopo->pxfDisk(thedetid));
-    unsigned int thering = (tTopo->pxfBlade(thedetid));
+    uint32_t rawid = thedetid.rawId();
+    uint32_t newid = rawid;
+    //now I have the raw ID and can mess with the bits
+    //the side, layer and ring are the same and I just have to increment or decrement the module number
     unsigned int themodule = (tTopo->pxfModule(thedetid));
+    unsigned int thering = (tTopo->pxfBlade(thedetid));
 
-    //loop the modules in the cluster collection
-    for (typename edmNew::DetSetVector<SiPixelCluster>::const_iterator DSVit = clusters->begin(); DSVit != clusters->end(); DSVit++) {
-        //get the detid
-        unsigned int rawid(DSVit->detId());
-        DetId detId(rawid);
-        TrackerGeometry::ModuleType mType = tkGeom->getDetectorType(detId);
-        if (mType != TrackerGeometry::ModuleType::Ph2PXF && detId.subdetId() != PixelSubdetector::PixelEndcap)
-            continue;
+    //in order to avoid duplicates, only look in the next module clockwise
+    //depending on the ring, if I am already on the module with the highest module id in the ring, I need to go to the first one
+    uint32_t newmodule = themodule + 1;
+    if (thering == 1 && themodule == 20)
+        newmodule = 1;
+    else if (thering == 2 && themodule == 28)
+        newmodule = 1;
+    else if (thering == 3 && themodule == 36)
+        newmodule = 1;
+    else if (thering == 4 && themodule == 44)
+        newmodule = 1;
+    else if (thering == 5 && themodule == 48)
+        newmodule = 1;
 
-        //find out which layer, side and ring
-        unsigned int side = (tTopo->pxfSide(detId)); // values are 1 and 2 for -+Z
-        if (side != theside)
-            continue;
-        unsigned int layer = (tTopo->pxfDisk(detId)); //values are 1 to 12 for disks TFPX1 to TFPX 8  and TEPX1 to TEPX 4
-        if (layer != thelayer)
-            continue;
-        unsigned int ring = (tTopo->pxfBlade(detId));
-        unsigned int module = (tTopo->pxfModule(detId));
+    //now encode
+    newid = (newid & 0xFFFFFC03) | ((newmodule & 0xFF) << 2);
 
-        //if we are looking for 2x, only accept the same ring
-        if (!is3x) {
-            if (ring != thering)
-                continue;
-            //check that it is a neighboring module
-            if (fabs(module - themodule) != 1)
-                continue;
-        } else
-        //if we do 3x, only accept ring +-1
-        {
-            if (fabs(thering - ring) != 1)
-                continue;
+    //now I have a raw id of the module I want to use
+    DetId id(newid);
+    unsigned int ring = (tTopo->pxfBlade(id));
+    unsigned int module = (tTopo->pxfModule(id));
+
+    edmNew::DetSetVector<SiPixelCluster>::const_iterator theit = clusters->find(id);
+    if (theit == clusters->end()) {
+        return false;
+    }
+
+    // Get the geomdet
+    const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(id));
+
+    unsigned int nClu = 0;
+    for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = theit->begin(); cluit != theit->end(); cluit++) {
+
+        // determine the position
+        MeasurementPoint mpClu(cluit->x(), cluit->y());
+        Local3DPoint localPosClu = geomDetUnit->topology().localPosition(mpClu);
+        Global3DPoint globalPosClu = geomDetUnit->surface().toGlobal(localPosClu);
+
+        //now check that the global position is within the cuts
+        if (fabs(globalPosClu.x() - theglobalPosClu.x()) < m_dx
+                && fabs(globalPosClu.y() - theglobalPosClu.y()) < m_dy
+                && fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
+            nClu++;
+            found = true;
+            std::cout << "Found matching cluster # " << nClu << std::endl;
+
+            std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << " ring: " << thering << " module: " << themodule << std::endl;
+            std::cout << "New      x: " << globalPosClu.x() << " y: " << globalPosClu.y() << " z: " << globalPosClu.z() << " ring: " << ring << " module: " << module << std::endl;
+
+            m_residualX->Fill(fabs(globalPosClu.x() - theglobalPosClu.x()));
+            m_residualY->Fill(fabs(globalPosClu.y() - theglobalPosClu.y()));
+            m_residualZ->Fill(fabs(globalPosClu.z() - theglobalPosClu.z()));
         }
+    }
+    if (nClu > 1)
+        std::cout << "Warning, found " << nClu << "Clusters within the cuts!" << std::endl;
+    return found;
+}
 
+bool ITclusterAnalyzer::findCoincidence3x(DetId thedetid, Global3DPoint theglobalPosClu)
+{
+    bool found = false;
+    uint32_t rawid = thedetid.rawId();
+    uint32_t newid = rawid;
+    //now I have the raw ID and can mess with the bits
+    //the side and layer are the same and I just have to look in a lower ring
+    unsigned int themodule = (tTopo->pxfModule(thedetid));
+    unsigned int thering = (tTopo->pxfBlade(thedetid));
+
+    unsigned int maxmodule = 0;
+    unsigned int newring =0;
+
+    if(thering > 1 && thering <=5)
+    {
+        newring = thering -1; //look in a lower ring
+        //now get the max range of modules for the respective ring
+        if(newring == 1) maxmodule = 20;
+        else if(newring ==2 ) maxmodule = 28;
+        else if(newring ==3)maxmodule = 36;
+        else if (newring ==4) maxmodule=44;
+    }
+    else return false;
+
+    for(uint32_t newmodule = 1; newmodule <=maxmodule; newmodule++)
+    {
+        newid = (newid & 0xFFFC0C03) | ((newring &0x3F) << 12) | ((newmodule & 0xFF) << 2);
+
+        DetId id(newid);
+        unsigned int ring = (tTopo->pxfBlade(id));
+        unsigned int module = (tTopo->pxfModule(id));
+
+        edmNew::DetSetVector<SiPixelCluster>::const_iterator theit = clusters->find(id);
+        if (theit == clusters->end()) {
+            return false;
+        }
         // Get the geomdet
-        const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
-        if (!geomDetUnit)
-            continue;
+        const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(id));
+        if(!geomDetUnit) continue;
 
         unsigned int nClu = 0;
-        //now loop the clusters for each detector
-        for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = DSVit->begin(); cluit != DSVit->end(); cluit++) {
+        for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = theit->begin(); cluit != theit->end(); cluit++) {
+
             // determine the position
             MeasurementPoint mpClu(cluit->x(), cluit->y());
             Local3DPoint localPosClu = geomDetUnit->topology().localPosition(mpClu);
@@ -427,33 +489,105 @@ bool ITclusterAnalyzer::findCoincidence(DetId thedetid, Global3DPoint theglobalP
 
             //now check that the global position is within the cuts
             if (fabs(globalPosClu.x() - theglobalPosClu.x()) < m_dx
-                && fabs(globalPosClu.y() - theglobalPosClu.y()) < m_dy
-                && fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
+                    && fabs(globalPosClu.y() - theglobalPosClu.y()) < m_dy
+                    && fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
                 nClu++;
                 found = true;
-                std::cout << "Found matching cluster # " << nClu << " ";
-                if (is3x)
-                    std::cout << "- this is a 3x coincidence!" << std::endl;
-                else
-                    std::cout << std::endl;
-
+                std::cout << "Found matching cluster # " << nClu << " which is a 3x coincidence"<< std::endl;
                 std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << " ring: " << thering << " module: " << themodule << std::endl;
                 std::cout << "New      x: " << globalPosClu.x() << " y: " << globalPosClu.y() << " z: " << globalPosClu.z() << " ring: " << ring << " module: " << module << std::endl;
-
-                if (!is3x) {
-                    m_residualX->Fill(fabs(globalPosClu.x() - theglobalPosClu.x()));
-                    m_residualY->Fill(fabs(globalPosClu.y() - theglobalPosClu.y()));
-                    m_residualZ->Fill(fabs(globalPosClu.z() - theglobalPosClu.z()));
-                }
             }
-        } //end of cluster loop
+        }
         if (nClu > 1)
             std::cout << "Warning, found " << nClu << "Clusters within the cuts!" << std::endl;
-        //else if (found && nClu == 1)
-        //std::cout << "Found a Clusters within the cuts!" << std::endl;
-    } //end of module loop
+    }
     return found;
 }
+
+//bool ITclusterAnalyzer::findCoincidence(DetId thedetid, Global3DPoint theglobalPosClu, bool is3x)
+//{
+//bool found = false;
+////get the side, layer & ring of the original cluster that I want to match to
+//unsigned int theside = (tTopo->pxfSide(thedetid));
+//unsigned int thelayer = (tTopo->pxfDisk(thedetid));
+//unsigned int thering = (tTopo->pxfBlade(thedetid));
+//unsigned int themodule = (tTopo->pxfModule(thedetid));
+
+////loop the modules in the cluster collection
+//for (typename edmNew::DetSetVector<SiPixelCluster>::const_iterator DSVit = clusters->begin(); DSVit != clusters->end(); DSVit++) {
+////get the detid
+//unsigned int rawid(DSVit->detId());
+//DetId detId(rawid);
+//TrackerGeometry::ModuleType mType = tkGeom->getDetectorType(detId);
+//if (mType != TrackerGeometry::ModuleType::Ph2PXF && detId.subdetId() != PixelSubdetector::PixelEndcap)
+//continue;
+
+////find out which layer, side and ring
+//unsigned int side = (tTopo->pxfSide(detId)); // values are 1 and 2 for -+Z
+//if (side != theside)
+//continue;
+//unsigned int layer = (tTopo->pxfDisk(detId)); //values are 1 to 12 for disks TFPX1 to TFPX 8  and TEPX1 to TEPX 4
+//if (layer != thelayer)
+//continue;
+//unsigned int ring = (tTopo->pxfBlade(detId));
+//unsigned int module = (tTopo->pxfModule(detId));
+
+////if we are looking for 2x, only accept the same ring
+//if (!is3x) {
+//if (ring != thering)
+//continue;
+////check that it is a neighboring module
+//if (fabs(module - themodule) != 1)
+//continue;
+//} else
+////if we do 3x, only accept ring +-1
+//{
+//if (fabs(thering - ring) != 1)
+//continue;
+//}
+
+//// Get the geomdet
+//const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
+//if (!geomDetUnit)
+//continue;
+
+//unsigned int nClu = 0;
+////now loop the clusters for each detector
+//for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = DSVit->begin(); cluit != DSVit->end(); cluit++) {
+//// determine the position
+//MeasurementPoint mpClu(cluit->x(), cluit->y());
+//Local3DPoint localPosClu = geomDetUnit->topology().localPosition(mpClu);
+//Global3DPoint globalPosClu = geomDetUnit->surface().toGlobal(localPosClu);
+
+////now check that the global position is within the cuts
+//if (fabs(globalPosClu.x() - theglobalPosClu.x()) < m_dx
+//&& fabs(globalPosClu.y() - theglobalPosClu.y()) < m_dy
+//&& fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
+//nClu++;
+//found = true;
+//std::cout << "Found matching cluster # " << nClu << " ";
+//if (is3x)
+//std::cout << "- this is a 3x coincidence!" << std::endl;
+//else
+//std::cout << std::endl;
+
+//std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << " ring: " << thering << " module: " << themodule << std::endl;
+//std::cout << "New      x: " << globalPosClu.x() << " y: " << globalPosClu.y() << " z: " << globalPosClu.z() << " ring: " << ring << " module: " << module << std::endl;
+
+//if (!is3x) {
+//m_residualX->Fill(fabs(globalPosClu.x() - theglobalPosClu.x()));
+//m_residualY->Fill(fabs(globalPosClu.y() - theglobalPosClu.y()));
+//m_residualZ->Fill(fabs(globalPosClu.z() - theglobalPosClu.z()));
+//}
+//}
+//} //end of cluster loop
+//if (nClu > 1)
+//std::cout << "Warning, found " << nClu << "Clusters within the cuts!" << std::endl;
+////else if (found && nClu == 1)
+////std::cout << "Found a Clusters within the cuts!" << std::endl;
+//} //end of module loop
+//return found;
+//}
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(ITclusterAnalyzer);

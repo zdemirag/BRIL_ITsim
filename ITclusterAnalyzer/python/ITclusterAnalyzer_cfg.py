@@ -50,8 +50,8 @@ process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterAnalyzer',
                                          clusters=cms.InputTag("siPixelClusters"),
                                          maxBin=cms.untracked.uint32(1000),
                                          docoincidence=cms.untracked.bool(True),
-                                         dx_cut=cms.double(.11),
-                                         dy_cut=cms.double(.11),
+                                         dx_cut=cms.double(.2),
+                                         dy_cut=cms.double(.2),
                                          dz_cut=cms.double(0.9)
                                          )
 

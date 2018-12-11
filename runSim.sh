@@ -48,12 +48,16 @@ fi
 #echo "Running on: `uname -a`" #Condor job is running on this node
 #echo "System software: `cat /etc/redhat-release`" #Operating System on that node
 #source /cvmfs/cms.cern.ch/cmsset_default.sh  ## if a bash script, use .sh instead of .csh
-#tar -xf CMSSW_10_4_0_pre2.tgz
-#rm CMSSW_10_4_0_pre2.tgz
-#setenv SCRAM_ARCH slc6_amd64_gcc700
+#echo "Extracting sandbox environment"
+#tar -xf sandbox.tar.bz2
+##cp sandbox CMSSW_10_4_0_pre2
+##rm sandbox.tar.bz2
+#echo "Setting up sandbox environment"
+#export SCRAM_ARCH=slc6_amd64_gcc700
 #cd CMSSW_10_4_0_pre2/src/
 #scramv1 b ProjectRename
 #eval `scramv1 runtime -sh`
+#cd ../..
 
 #option2
 #########################
@@ -69,7 +73,7 @@ old_release_top=$(awk -F= '/RELEASETOP/ {print $2}' $rel/.SCRAM/slc*/Environment
  
 # Creating new release
 # This isdone so e.g CMSSW_BASE and other variables are not hardcoded to the sandbox setting paths
- # which will not exist here
+# which will not exist here
   
 echo ">>> creating new release $rel"
 mkdir tmp
@@ -79,7 +83,8 @@ new_release_top=$(awk -F= '/RELEASETOP/ {print $2}' $rel/.SCRAM/slc*/Environment
 cd $rel
 echo ">>> preparing sandbox release $rel"
   
-for i in bin cfipython config lib module python src; do
+#for i in bin cfipython config lib module python src; do
+for i in bin cfipython config lib python src; do
     rm -rf "$i"
     mv "$basedir/$rel/$i" .
 done
@@ -97,24 +102,23 @@ echo "[$(date '+%F %T')] wrapper ready"
 #Run Simulation
 #########################
 #now the actual commands for the generation
-echo "running Step 1"
-cmsDriver.py SingleNuE10_cfi.py --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUG --relval 9000,50 -s GEN,SIM --datatier GEN-SIM --beamspot HLLHC --geometry Extended2023D21 --fileout file:step1.root  > step1_PU$PU.log  2>&1
+echo "running Step 1 from directory $PWD"
+cmsDriver.py SingleNuE10_cfi.py --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUG --relval 9000,50 -s GEN,SIM --datatier GEN-SIM --beamspot HLLHC --geometry Extended2023D21 --fileout file:step1.root # > step1_PU$PU.log  2>&1
 
-echo "running Step 2"
+echo "running Step 2 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
-    cmsDriver.py step2  --conditions auto:phase2_realistic -s DIGI:pdigi_valid,L1,L1TrackTrigger,DIGI2RAW,HLT:@fake2 --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent FEVTDEBUGHLT --filein  file:step1.root  --fileout file:step2.root  > step2_PU$PU.log  2>&1
+    cmsDriver.py step2  --conditions auto:phase2_realistic -s DIGI:pdigi_valid,L1,L1TrackTrigger,DIGI2RAW,HLT:@fake2 --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent FEVTDEBUGHLT --filein  file:step1.root  --fileout file:step2.root # > step2_PU$PU.log  2>&1
 else
-    cmsDriver.py step2  --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT -s DIGI:pdigi_valid,L1,L1TrackTrigger,DIGI2RAW,HLT:@fake2 --datatier GEN-SIM-DIGI-RAW --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step1.root  --fileout file:step2.root  > step2_PU$PU.log  2>&1
+    cmsDriver.py step2  --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT -s DIGI:pdigi_valid,L1,L1TrackTrigger,DIGI2RAW,HLT:@fake2 --datatier GEN-SIM-DIGI-RAW --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step1.root  --fileout file:step2.root # > step2_PU$PU.log  2>&1
 fi
 
-echo "running Step 3"
+echo "running Step 3 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
-    cmsDriver.py step3  --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT,MINIAODSIM,DQM --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3.root  > step3_PU$PU.log  2>&1
+    cmsDriver.py step3  --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT,MINIAODSIM,DQM --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3.root # > step3_PU$PU.log  2>&1
 else
-    cmsDriver.py step3  --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT,MINIAODSIM,DQM --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3.root  > step3_PU$PU.log  2>&1
+    cmsDriver.py step3  --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT,MINIAODSIM,DQM --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3.root # > step3_PU$PU.log  2>&1
 fi
 
-#cd ..
 echo "Done running the generation"
 echo "Cleaning up behing me"
 rm -rf tmp
