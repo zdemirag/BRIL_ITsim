@@ -15,6 +15,7 @@ return $result
 
 PU=$1
 NEVENTS=$2
+JOBID=$3
 
 if test -z "$PU" 
 then
@@ -42,24 +43,14 @@ else
    echo "running over $NEVENTS events "
 fi
 
-#option 1
-#echo "Setting cmssw environment"
-#echo "Starting job on " `date` #Date/time of start of job
-#echo "Running on: `uname -a`" #Condor job is running on this node
-#echo "System software: `cat /etc/redhat-release`" #Operating System on that node
-#source /cvmfs/cms.cern.ch/cmsset_default.sh  ## if a bash script, use .sh instead of .csh
-#echo "Extracting sandbox environment"
-#tar -xf sandbox.tar.bz2
-##cp sandbox CMSSW_10_4_0_pre2
-##rm sandbox.tar.bz2
-#echo "Setting up sandbox environment"
-#export SCRAM_ARCH=slc6_amd64_gcc700
-#cd CMSSW_10_4_0_pre2/src/
-#scramv1 b ProjectRename
-#eval `scramv1 runtime -sh`
-#cd ../..
+if test -z "$JOBID" 
+then
+   echo "No job ID passed - I will exit"
+   return
+else
+    echo "Jobid $JOBID"
+fi
 
-#option2
 #########################
 #Setup CMSSW framework
 #########################
@@ -114,10 +105,14 @@ fi
 
 echo "running Step 3 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
-    cmsDriver.py step3  --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT,MINIAODSIM,DQM --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3.root # > step3_PU$PU.log  2>&1
+    cmsDriver.py step3  --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT,MINIAODSIM,DQM --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3_${PU}.${JOBID}.root # > step3_PU$PU.log  2>&1
 else
-    cmsDriver.py step3  --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT,MINIAODSIM,DQM --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3.root # > step3_PU$PU.log  2>&1
+    cmsDriver.py step3  --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUGHLT,MINIAODSIM,DQM --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3_${PU}.${JOBID}.root # > step3_PU$PU.log  2>&1
 fi
+
+#now copy the files to afs
+echo "copying files to /afs/cern.ch/work/g/gauzinge/public/condorout"
+cp step3_${PU}.${JOBID}.root /afs/cern.ch/work/g/gauzinge/public/condorout/
 
 echo "Done running the generation"
 echo "Cleaning up behing me"

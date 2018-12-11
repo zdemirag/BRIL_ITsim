@@ -1,16 +1,16 @@
 PU_parameter        = 100
-NEvents             = 500
+NEvents             = 50
 
 executable          = runSim.sh
-arguments           = $(PU_parameter) $(NEvents)
+arguments           = $(PU_parameter) $(NEvents) $(ProcId)
 output              = batchlog/runSim.$(ClusterId).$(ProcId).out
 error               = batchlog/runSim.$(ClusterId).$(ProcId).err
-log                 = batchlog/runSim.$(ClusterId).$(ProcId).log
+log                 = batchlog/runSim.$(ClusterId).log
 transfer_input_files    = sandbox.tar.bz2
 #getenv              = True
 request_cpus        = 8
 
 
-transfer_output_remaps = "step3.root=PUSamples/step3_PU$(PU_parameter).$(ProcId).root"
+transfer_output_files = ""
 +JobFlavour        = "testmatch"
-queue 20
+queue 10
