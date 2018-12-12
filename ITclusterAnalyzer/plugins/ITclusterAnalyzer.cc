@@ -478,7 +478,7 @@ bool ITclusterAnalyzer::findCoincidence2x(DetId thedetid, Global3DPoint thegloba
                 m_residualR->Fill(r.dr);
             }
         }
-        std::cout << std::endl;
+        //std::cout << std::endl;
     }
     return found;
 }
