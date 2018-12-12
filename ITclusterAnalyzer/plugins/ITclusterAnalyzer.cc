@@ -61,66 +61,87 @@ Implementation:
 // from  edm::one::EDAnalyzer<>
 // This will improve performance in multithreaded jobs.
 
+// a struct to hold the residuals for each matched cluster
+struct Residual {
+    double dx;
+    double dy;
+    double dr;
+
+    Residual(double x, double y)
+        : dx(x)
+        , dy(y)
+    {
+        dr = sqrt(pow(dx, 2) + pow(dy, 2));
+    }
+    void print()
+    {
+        std::cout << "(dx: " << dx << " dy: " << dy << " dr: " << dr << ") ";
+    }
+};
+
 class ITclusterAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
-    public:
-        explicit ITclusterAnalyzer(const edm::ParameterSet&);
-        ~ITclusterAnalyzer();
+public:
+    explicit ITclusterAnalyzer(const edm::ParameterSet&);
+    ~ITclusterAnalyzer();
 
-        static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
-    private:
-        virtual void beginJob() override;
-        virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
-        virtual void endJob() override;
+private:
+    virtual void beginJob() override;
+    virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
+    virtual void endJob() override;
 
-        //bool findCoincidence(DetId, Global3DPoint, bool);
-        bool findCoincidence2x(DetId, Global3DPoint);
-        bool findCoincidence3x(DetId, Global3DPoint);
+    //bool findCoincidence(DetId, Global3DPoint, bool);
+    bool findCoincidence2x(DetId, Global3DPoint);
+    bool findCoincidence3x(DetId, Global3DPoint);
 
-        // ----------member data ---------------------------
-        edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
+    // ----------member data ---------------------------
+    edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
 
-        // the pointers to geometry, topology and clusters
-        // these are members so all functions can access them without passing as argument
-        const TrackerTopology* tTopo = NULL;
-        const TrackerGeometry* tkGeom = NULL;
-        const edmNew::DetSetVector<SiPixelCluster>* clusters = NULL;
+    // the pointers to geometry, topology and clusters
+    // these are members so all functions can access them without passing as argument
+    const TrackerTopology* tTopo = NULL;
+    const TrackerGeometry* tkGeom = NULL;
+    const edmNew::DetSetVector<SiPixelCluster>* clusters = NULL;
 
-        //max bins of Counting histogram
-        uint32_t m_maxBin;
-        //flag for checking coincidences
-        bool m_docoincidence;
+    //max bins of Counting histogram
+    uint32_t m_maxBin;
+    //flag for checking coincidences
+    bool m_docoincidence;
 
-        //array of TH2F for clusters per disk per ring
-        TH2F* m_diskHistosCluster[8];
-        //tracker maps for clusters
-        TH2F* m_trackerLayoutClustersZR;
-        TH2F* m_trackerLayoutClustersYX;
+    //array of TH2F for clusters per disk per ring
+    TH2F* m_diskHistosCluster[8];
+    //tracker maps for clusters
+    TH2F* m_trackerLayoutClustersZR;
+    TH2F* m_trackerLayoutClustersYX;
 
-        //array of TH2F for 2xcoinc per disk per ring
-        TH2F* m_diskHistos2x[8];
-        //tracker maps for 2xcoinc
-        TH2F* m_trackerLayout2xZR;
-        TH2F* m_trackerLayout2xYX;
+    //array of TH2F for 2xcoinc per disk per ring
+    TH2F* m_diskHistos2x[8];
+    //tracker maps for 2xcoinc
+    TH2F* m_trackerLayout2xZR;
+    TH2F* m_trackerLayout2xYX;
 
-        //array of TH2F for 3xcoinc per disk per ring
-        TH2F* m_diskHistos3x[8];
-        //tracker maps for 2xcoinc
-        TH2F* m_trackerLayout3xZR;
-        TH2F* m_trackerLayout3xYX;
+    //array of TH2F for 3xcoinc per disk per ring
+    TH2F* m_diskHistos3x[8];
+    //tracker maps for 2xcoinc
+    TH2F* m_trackerLayout3xZR;
+    TH2F* m_trackerLayout3xYX;
 
-        //simple residual histograms for the cuts
-        TH1F* m_residualX;
-        TH1F* m_residualY;
-        TH1F* m_residualZ;
+    //simple residual histograms for the cuts
+    TH1F* m_residualX;
+    TH1F* m_residualY;
+    TH1F* m_residualR;
 
-        //the number of clusters per module
-        TH1F* m_nClusters;
+    //the number of clusters per module
+    TH1F* m_nClusters;
 
-        //cuts for the coincidence
-        double m_dx;
-        double m_dy;
-        double m_dz;
+    //cuts for the coincidence
+    double m_dx;
+    double m_dy;
+    double m_dz;
+
+    //event counter
+    uint32_t m_nevents;
 };
 
 //
@@ -136,14 +157,15 @@ class ITclusterAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>
 //
 ITclusterAnalyzer::ITclusterAnalyzer(const edm::ParameterSet& iConfig)
     : //m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>> ("clusters"))
-        m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("clusters")))
-        , m_maxBin(iConfig.getUntrackedParameter<uint32_t>("maxBin"))
-        , m_docoincidence(iConfig.getUntrackedParameter<bool>("docoincidence"))
-        , m_dx(iConfig.getParameter<double>("dx_cut"))
-        , m_dy(iConfig.getParameter<double>("dy_cut"))
-        , m_dz(iConfig.getParameter<double>("dz_cut"))
+    m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("clusters")))
+    , m_maxBin(iConfig.getUntrackedParameter<uint32_t>("maxBin"))
+    , m_docoincidence(iConfig.getUntrackedParameter<bool>("docoincidence"))
+    , m_dx(iConfig.getParameter<double>("dx_cut"))
+    , m_dy(iConfig.getParameter<double>("dy_cut"))
+    , m_dz(iConfig.getParameter<double>("dz_cut"))
 {
     //now do what ever initialization is needed
+    m_nevents = 0;
 }
 
 ITclusterAnalyzer::~ITclusterAnalyzer()
@@ -167,7 +189,7 @@ void ITclusterAnalyzer::beginJob()
 
     m_residualX = td.make<TH1F>("ResidualsX", "ResidualsX;deltaX;counts", 1000, 0, 1);
     m_residualY = td.make<TH1F>("ResidualsY", "ResidualsY;deltaY;counts", 1000, 0, 1);
-    m_residualZ = td.make<TH1F>("ResidualsZ", "ResidualsZ;deltaZ;counts", 300, 0, 3);
+    m_residualR = td.make<TH1F>("ResidualsR", "ResidualsR;deltaR;counts", 1000, 0, 1);
 
     fs->file().cd("/");
     td = fs->mkdir("perModule");
@@ -347,11 +369,13 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
             }
         }
     }
+    m_nevents++;
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void ITclusterAnalyzer::endJob()
 {
+    std::cout << "IT cluster Analyzer processed " << m_nevents << " events!" << std::endl;
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
@@ -411,6 +435,10 @@ bool ITclusterAnalyzer::findCoincidence2x(DetId thedetid, Global3DPoint thegloba
     const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(id));
 
     unsigned int nClu = 0;
+    //at the end of the day, need to find the closest coincidence hit, so store the minimum 2D distance in a temporary variable and a vector for all values
+    double r_min = 1000.;
+    std::vector<Residual> r_vec;
+
     for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = theit->begin(); cluit != theit->end(); cluit++) {
 
         // determine the position
@@ -420,22 +448,38 @@ bool ITclusterAnalyzer::findCoincidence2x(DetId thedetid, Global3DPoint thegloba
 
         //now check that the global position is within the cuts
         if (fabs(globalPosClu.x() - theglobalPosClu.x()) < m_dx
-                && fabs(globalPosClu.y() - theglobalPosClu.y()) < m_dy
-                && fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
+            && fabs(globalPosClu.y() - theglobalPosClu.y()) < m_dy
+            && fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
             nClu++;
+
+            double delta_x = fabs(globalPosClu.x() - theglobalPosClu.x());
+            double delta_y = fabs(globalPosClu.y() - theglobalPosClu.y());
+            Residual r(delta_x, delta_y);
+            r_vec.push_back(r);
+
+            if (r.dr < r_min)
+                r_min = r.dr;
             found = true;
-            std::cout << "Found matching cluster # " << nClu << std::endl;
 
-            std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << " ring: " << thering << " module: " << themodule << std::endl;
-            std::cout << "New      x: " << globalPosClu.x() << " y: " << globalPosClu.y() << " z: " << globalPosClu.z() << " ring: " << ring << " module: " << module << std::endl;
+            //std::cout << "Found matching cluster # " << nClu << std::endl;
 
-            m_residualX->Fill(fabs(globalPosClu.x() - theglobalPosClu.x()));
-            m_residualY->Fill(fabs(globalPosClu.y() - theglobalPosClu.y()));
-            m_residualZ->Fill(fabs(globalPosClu.z() - theglobalPosClu.z()));
+            //std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << " ring: " << thering << " module: " << themodule << std::endl;
+            //std::cout << "New      x: " << globalPosClu.x() << " y: " << globalPosClu.y() << " z: " << globalPosClu.z() << " ring: " << ring << " module: " << module << std::endl;
         }
     }
-    if (nClu > 1)
-        std::cout << "Warning, found " << nClu << "Clusters within the cuts!" << std::endl;
+    if (nClu > 1) {
+        //std::cout << "Warning, found " << nClu << "Clusters within the cuts - the minimum distance is " << r_min << "!" << std::endl;
+        //std::cout << "All distances: ";
+        for (auto r : r_vec) {
+            //r.print();
+            if (r.dr == r_min) {
+                m_residualX->Fill(r.dx);
+                m_residualY->Fill(r.dy);
+                m_residualR->Fill(r.dr);
+            }
+        }
+        std::cout << std::endl;
+    }
     return found;
 }
 
@@ -450,22 +494,24 @@ bool ITclusterAnalyzer::findCoincidence3x(DetId thedetid, Global3DPoint thegloba
     unsigned int thering = (tTopo->pxfBlade(thedetid));
 
     unsigned int maxmodule = 0;
-    unsigned int newring =0;
+    unsigned int newring = 0;
 
-    if(thering > 1 && thering <=5)
-    {
-        newring = thering -1; //look in a lower ring
+    if (thering > 1 && thering <= 5) {
+        newring = thering - 1; //look in a lower ring
         //now get the max range of modules for the respective ring
-        if(newring == 1) maxmodule = 20;
-        else if(newring ==2 ) maxmodule = 28;
-        else if(newring ==3)maxmodule = 36;
-        else if (newring ==4) maxmodule=44;
-    }
-    else return false;
+        if (newring == 1)
+            maxmodule = 20;
+        else if (newring == 2)
+            maxmodule = 28;
+        else if (newring == 3)
+            maxmodule = 36;
+        else if (newring == 4)
+            maxmodule = 44;
+    } else
+        return false;
 
-    for(uint32_t newmodule = 1; newmodule <=maxmodule; newmodule++)
-    {
-        newid = (newid & 0xFFFC0C03) | ((newring &0x3F) << 12) | ((newmodule & 0xFF) << 2);
+    for (uint32_t newmodule = 1; newmodule <= maxmodule; newmodule++) {
+        newid = (newid & 0xFFFC0C03) | ((newring & 0x3F) << 12) | ((newmodule & 0xFF) << 2);
 
         DetId id(newid);
         unsigned int ring = (tTopo->pxfBlade(id));
@@ -477,9 +523,14 @@ bool ITclusterAnalyzer::findCoincidence3x(DetId thedetid, Global3DPoint thegloba
         }
         // Get the geomdet
         const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(id));
-        if(!geomDetUnit) continue;
+        if (!geomDetUnit)
+            continue;
 
         unsigned int nClu = 0;
+        //to make sure we only use the closest hit
+        double r_min = 1000.;
+        std::vector<Residual> r_vec;
+
         for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = theit->begin(); cluit != theit->end(); cluit++) {
 
             // determine the position
@@ -489,17 +540,30 @@ bool ITclusterAnalyzer::findCoincidence3x(DetId thedetid, Global3DPoint thegloba
 
             //now check that the global position is within the cuts
             if (fabs(globalPosClu.x() - theglobalPosClu.x()) < m_dx
-                    && fabs(globalPosClu.y() - theglobalPosClu.y()) < m_dy
-                    && fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
+                && fabs(globalPosClu.y() - theglobalPosClu.y()) < m_dy
+                && fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
                 nClu++;
                 found = true;
-                std::cout << "Found matching cluster # " << nClu << " which is a 3x coincidence"<< std::endl;
-                std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << " ring: " << thering << " module: " << themodule << std::endl;
-                std::cout << "New      x: " << globalPosClu.x() << " y: " << globalPosClu.y() << " z: " << globalPosClu.z() << " ring: " << ring << " module: " << module << std::endl;
+                double delta_x = fabs(globalPosClu.x() - theglobalPosClu.x());
+                double delta_y = fabs(globalPosClu.y() - theglobalPosClu.y());
+                Residual r(delta_x, delta_y);
+                r_vec.push_back(r);
+
+                if (r.dr < r_min)
+                    r_min = r.dr;
+                //std::cout << "Found matching cluster # " << nClu << " which is a 3x coincidence" << std::endl;
+                //std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << " ring: " << thering << " module: " << themodule << std::endl;
+                //std::cout << "New      x: " << globalPosClu.x() << " y: " << globalPosClu.y() << " z: " << globalPosClu.z() << " ring: " << ring << " module: " << module << std::endl;
             }
         }
-        if (nClu > 1)
-            std::cout << "Warning, found " << nClu << "Clusters within the cuts!" << std::endl;
+        //if (nClu > 1) {
+        //std::cout << "3X COINCIDENCE - Warning, found " << nClu << "Clusters within the cuts - the minimum distance is " << r_min << "!" << std::endl;
+        //std::cout << "All distances: ";
+        //for (auto r : r_vec) {
+        //r.print();
+        //}
+        //std::cout << std::endl;
+        //}
     }
     return found;
 }

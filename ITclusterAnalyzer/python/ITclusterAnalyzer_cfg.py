@@ -9,11 +9,23 @@ process = cms.Process("ITclusterAnalyzer")
 # set up the options
 options = VarParsing.VarParsing('analysis')
 #set up the defaults
-options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/ITsim/myPU_35sample/step3.root'
+# options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/ITsim/myPU_35sample/step3.root'
+options.inputFiles = 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.0.root'
+# 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.1.root',
+# 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.2.root',
+# 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.3.root',
+# 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.4.root',
+# 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.5.root',
+# 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.6.root',
+# 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.7.root',
+# 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.8.root',
+# 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.9.root'
+options.tag='0'
 options.outputFile='summary.root'
 options.maxEvents = -1 #all events
 
 #get and parse command line arguments
+options.parseArguments()
 
 #not sure these are needed
 # Import all the necessary files
@@ -48,10 +60,10 @@ process.source = cms.Source("PoolSource",
 # the config of my analyzer
 process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterAnalyzer',
                                          clusters=cms.InputTag("siPixelClusters"),
-                                         maxBin=cms.untracked.uint32(1000),
+                                         maxBin=cms.untracked.uint32(5000),
                                          docoincidence=cms.untracked.bool(True),
-                                         dx_cut=cms.double(.2),
-                                         dy_cut=cms.double(.2),
+                                         dx_cut=cms.double(.5),
+                                         dy_cut=cms.double(.5),
                                          dz_cut=cms.double(0.9)
                                          )
 

@@ -13,4 +13,4 @@ request_cpus        = 8
 
 transfer_output_files = ""
 +JobFlavour        = "testmatch"
-queue 10
+queue
