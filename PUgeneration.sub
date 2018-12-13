@@ -1,14 +1,14 @@
 PU_parameter        = 100
-NEvents             = 50
+NEvents             = 1000
 
 executable          = runSim.sh
 arguments           = $(PU_parameter) $(NEvents) $(ProcId)
 output              = batchlog/runSim.$(ClusterId).$(ProcId).out
 error               = batchlog/runSim.$(ClusterId).$(ProcId).err
 log                 = batchlog/runSim.$(ClusterId).log
-transfer_input_files    = sandbox.tar.bz2
+transfer_input_files    = sandbox.tar.bz2, filter_step3.py
 #getenv              = True
-request_cpus        = 8
+request_cpus        = 12
 
 
 transfer_output_files = ""

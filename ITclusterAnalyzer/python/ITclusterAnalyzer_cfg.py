@@ -10,7 +10,7 @@ process = cms.Process("ITclusterAnalyzer")
 options = VarParsing.VarParsing('analysis')
 #set up the defaults
 # options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/ITsim/myPU_35sample/step3.root'
-options.inputFiles = 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.0.root'
+options.inputFiles = 'file:/afs/cern.ch/work/g/gauzinge/public/PU100/step3_100.0.root'
 # 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.1.root',
 # 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.2.root',
 # 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.3.root',
