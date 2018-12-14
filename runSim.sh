@@ -16,8 +16,13 @@ return $result
 PU=$1
 NEVENTS=$2
 JOBID=$3
-NTHREADS=10
 EVENTCONTENT=FEVTDEBUG
+
+##### change me to your needs #####
+NTHREADS=10
+PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root
+OUTDIR=/afs/cern.ch/work/g/gauzinge/public/condorout
+##################################
 
 if test -z "$PU" 
 then
@@ -106,7 +111,7 @@ if [[ "$PU" -eq "0" ]]; then
     # > step2_PU$PU.log  2>&1
 else
     #cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,L1TrackTrigger,DIGI2RAW,HLT:@fake2 --datatier GEN-SIM-DIGI-RAW --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS}
-    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS}
+    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS}
     # > step2_PU$PU.log  2>&1
 fi
 
@@ -117,7 +122,7 @@ if [[ "$PU" -eq "0" ]]; then
     # > step3_PU$PU.log  2>&1
 else
     #cmsDriver.py step3 --mc --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT},MINIAODSIM,DQM --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
-    cmsDriver.py step3 --mc --conditions auto:phase2_realistic --pileup_input file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
+    cmsDriver.py step3 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --pileup $PUSTRING --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
     # > step3_PU$PU.log  2>&1
 fi
 
@@ -129,8 +134,8 @@ cmsRun filter_step3.py print \
     outputFile=step3_pixel_PU_${PU}.${JOBID}.root
 
 ##now copy the files to afs
-echo "copying files to /afs/cern.ch/work/g/gauzinge/public/condorout"
-cp step3_pixel_PU_${PU}.${JOBID}.root /afs/cern.ch/work/g/gauzinge/public/condorout/
+echo "copying files to ${OUTDIR}"
+cp step3_pixel_PU_${PU}.${JOBID}.root ${OUTDIR}
 
 echo "Done running the generation"
 echo "Cleaning up behing me"
