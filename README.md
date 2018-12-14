@@ -184,8 +184,31 @@ and be patient and watch as your quota goes away....Happy simulating!
 
 
 ###  Running the BRIL IT Cluster analyzer
+The last step for now is running the ITclusterAnalyzer package written for CMSSW. It runs over the file you created in the last step and creates some histograms relevant for BRIL studies. It is a standard EDAnalyzer class in CMSSW and the source code can be found in `CMSSW_10_4_0_pre2/src/BRIL_ITsim/ITclusterAnalyzer/plugins`. Have a look. The config file is in `CMSSW_10_4_0_pre2/src/BRIL_ITsim/ITclusterAnalyzer/python/ITclusterAnalyzer_cfg.py`. You should edit this file to contain the right path for the step3 file you created in the previous step of the simulation and you can modify the cuts for coincidence searches if you want - you can also disable those. The file should be pretty self explanatory.
 
-coming soon ...
+```sh
+cd BRIL_ITsim
+cmsenv
+scram b -j8
+cmsRun ITclusterAnalyzer/python/ITclusterAnalyzer_cfg.py
+```
+
+This will produce a `summary.root` file that you can inspect like so:
+
+```sh
+root summary.root
+new TBrowser
+```
+
+Have a look around, try to understand the generated histograms and do with them what you like.
+
+In case you were batch processing multiple jobs in parallel (or want to merge locally generated files) you can also use the `runAnalysis.sh` script in this repo. As usual, make sure the paths are ok in the file (meaning you need to change them!). IT will loop over all `step3_pixel_PU_${PU}.${JOBID}.root` files in your data directory and gernerate the summary.root files for each of them and merge them in the end. The only command line argument is the Pileup step to process:
+
+```sh
+./runAnalysis.sh 10
+```
+
+to process all step3_XXXXX files for PU 10 and generate a single summary file for this pileup value.
 
 
-
+if you have any bug reports or questions, contact me!
