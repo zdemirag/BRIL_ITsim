@@ -4,7 +4,7 @@
 This guide is intended for people working on the BRIL Phase II upgrade, more specifically simulations of the Inner Tracker for Lumi measurements. It gives detailed instructions on how to set up and run simulations with custom IT geometries and varying levels of pileup. It is sectioned in the following parts:
 
 1. setting up an appropriate CMSSW Environment
-1. using custom geometry files exported from [TkLayout] (http://tklayout.web.cern.ch)
+1. using custom geometry files exported from [TkLayout](http://tklayout.web.cern.ch)
 1. generating Minimum Bias Events using the custom geometry to use as Pileup input for the rest of the simulation
 1. running the full simulation
     * locally for a small data sample using the runTheMatrix.py command of CMSSW
@@ -170,7 +170,7 @@ The first one is the PU you want to run and the list of possible values can be f
 
 #### Runnig simulations on CERN HT Condor batch service
 
-Before you do anything, first read the HT Condor [guide] (http://batchdocs.web.cern.ch/batchdocs/tutorial/introduction.html) including chapter 3. 
+Before you do anything, first read the HT Condor [guide](http://batchdocs.web.cern.ch/batchdocs/tutorial/introduction.html) including chapter 3. 
 
 
 
@@ -185,6 +185,7 @@ and be patient and watch as your quota goes away....Happy simulating!
 
 ###  Running the BRIL IT Cluster analyzer
 
+coming soon ...
 
 
 
