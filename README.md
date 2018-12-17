@@ -48,10 +48,10 @@ git clone https://github.com/gauzinge/BRIL_ITsim.git
 cd BRIL_ITsim
 ```
 
-or better yet fork the repo to your github account! Now you can call the `copyGeo.sh` with the following arguments: `-s mysourceDir -d mydestDir` to copy all relevant geometry files from the source (most likely `BRIL_ITsim/ITGeometries/OT614_200_IT612` in this repo as source and `mySimDir/CMSSW_10_4_0_pre2/src` as destination). 
+or better yet fork the repo to your github account! Now you can call the `copyGeo.sh` with the following arguments: `-s=mysourceDir -d=mydestDir` to copy all relevant geometry files from the source (most likely `BRIL_ITsim/ITGeometries/OT614_200_IT612` in this repo as source and `mySimDir/CMSSW_10_4_0_pre2/src` as destination). Alternatively you can hardcode the paths in the copyGeo.sh script. 
 
 ```sh
-source copyGeo.sh -s ITGeometries/OT614_200_IT612 -d mySimDir/CMSSW_10_4_0_pre2/src
+source copyGeo.sh -s=ITGeometries/OT614_200_IT612 -d=mySimDir/CMSSW_10_4_0_pre2/src
 ```
 
 The next step is crucial, so pay attention: since you modified the geometry files you have to re-build your added CMSSW sources. This is done using the scram command

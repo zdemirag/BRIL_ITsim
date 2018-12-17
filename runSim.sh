@@ -21,7 +21,7 @@ EVENTCONTENT=FEVTDEBUG
 ##### change me to your needs #####
 NTHREADS=10
 PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root
-OUTDIR=/afs/cern.ch/work/g/gauzinge/public/condorout
+OUTDIR=/eos/user/g/gauzinge/PUdata
 ##################################
 
 if test -z "$PU" 
