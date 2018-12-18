@@ -1,5 +1,5 @@
-PU_parameter        = 0
-NEvents             = 10000
+PU_parameter        = 100
+NEvents             = 1000
 
 executable          = runSim.sh
 arguments           = $(PU_parameter) $(NEvents) $(ProcId)

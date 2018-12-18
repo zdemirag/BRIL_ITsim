@@ -1,14 +1,14 @@
 #!/bin/bash
 
 PUIN=$1
-DATAPATH=/afs/cern.ch/work/g/gauzinge/public/condorout/
+DATAPATH=/eos/user/g/gauzinge/PUdata/
 
 echo "running BRIL IT Cluster analysis"
 eval $(scramv1 runtime -sh) || echo "The command 'cmsenv' failed!"
 
 for filename in ${DATAPATH}*.root; do
     #get the Proc ID
-    TAG=$(echo ${filename} | cut -d'.' -f 3)
+    TAG=$(echo ${filename} | cut -d'.' -f 2)
     tmp=$(echo ${filename} | cut -d'_' -f 4)
     PU=$(echo ${tmp} | cut -d'.' -f 1)
     echo ${TAG} ${PU}
@@ -28,4 +28,4 @@ for rootfile in ${PWD}/*.root; do
     command+=" ${rootfile}"
 done
 echo $command
-${command}
+#${command}
