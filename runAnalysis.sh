@@ -23,9 +23,9 @@ for filename in ${DATAPATH}*.root; do
 done
 
 echo "Now merging output histograms"
-command="hadd summary_PU${PU}.root"
+command="hadd summary_PU${PUIN}.root"
 for rootfile in ${PWD}/*.root; do
     command+=" ${rootfile}"
 done
 echo $command
-#${command}
+${command}
