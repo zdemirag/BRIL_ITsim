@@ -109,7 +109,7 @@ echo "running Step 2 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
     cmsDriver.py step2 --mc --conditions auto:phase2_realistic -s DIGI:pdigi,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein file:step1.root --fileout file:step2.root --nThreads ${NTHREADS}
 else
-    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup $PUSTRING --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS}
+    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS}
 fi
 echo "removing step1.root to make some space"
 rm step1.root
@@ -118,7 +118,7 @@ echo "running Step 3 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
     cmsDriver.py step3 --mc --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --geometry Extended2023D21 --filein file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
 else
-    cmsDriver.py step3 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --pileup $PUSTRING --geometry Extended2023D21 --filein file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
+    cmsDriver.py step3 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
 fi
 echo "Removing step2.root to make some space"
 rm step2.root
