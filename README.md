@@ -33,6 +33,7 @@ This sets up the working environment, the paths and the right compiler. In the n
 
 ```sh
 git cms-addpkg Configuration/PyReleaseValidation
+git cms-addpkg Configuration/StandardSequences
 git cms-addpkg Geometry/TrackerCommonData
 git cms-addpkg Geometry/TrackerRecoData
 git cms-addpkg Geometry/TrackerSimData
@@ -61,6 +62,25 @@ scram b -j8
 ```
 
 for 8 core compilation. Now everything you do will be based on the custom geometry.
+
+### Using non-standard Pileup scenarios
+Edit the file `mySimDir/CMSSW_10_4_0_pre2/src/Configuration/StandardSequences/python/Mixing.py` and add whatever mixing scenario you desire in addition to the ones available around line  123. So for example add the following lines:
+
+```py
+# for BRIL linearity studies
+addMixingScenario("AVE_0.5_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 0.5})
+addMixingScenario("AVE_1_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 1})
+addMixingScenario("AVE_1.5_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 1.5})
+addMixingScenario("AVE_2_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 1.5})
+```
+
+again, as in the previous case don't forget to re-build:
+
+```sh
+scram b -j8
+```
+
+You can now use the numbers you added for PU in the runSim script later.
 
 ### Generating Minimum Bias Events to use as Pileup Input in the actual Simulation
 

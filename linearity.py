@@ -240,6 +240,8 @@ for i in range(disks):
         (extrapolated2x[i][j],errors2x[i][j]) = extrapolateLinear(graphs2x[i][j],20)
         # errors2x[i][j].Draw("e3 same")
         extrapolated2x[i][j].Draw("same")
+        deviation2x = relativeNonlinearity(graphs2x[i][j], extrapolated[i][j])
+        deviation2x.Write("Deviation2x Disk"+str(i+1)+"Ring"+str(j+1))
 
         # savecanvas = root.TCanvas("2x Disk"+str(i+1)+"Ring"+str(j+1),"2x Disk"+str(i+1)+"Ring"+str(j+1))
         savecanvas.cd()

@@ -18,7 +18,7 @@ options.parseArguments()
 
 # load the geomtry that i modified
 process.load('Configuration.Geometry.GeometryExtended2023D21Reco_cff')
-process.load('Configuration.StandardSequences.MagneticField_38T_cff')
+process.load('Configuration.StandardSequences.MagneticField_cff')
 
 # initialize MessageLogger and output report
 process.load("FWCore.MessageLogger.MessageLogger_cfi")

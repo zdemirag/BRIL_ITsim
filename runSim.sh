@@ -17,6 +17,7 @@ PU=$1
 NEVENTS=$2
 JOBID=$3
 EVENTCONTENT=FEVTDEBUG
+#replacinge pdigi_valid with pdigi
 
 ##### change me to your needs #####
 NTHREADS=10
@@ -33,7 +34,7 @@ else
    echo "Using pileup string "$PUSTRING
 fi
 
-if `list_include_item "0 1 10 20 25 30 35 40 45 50 70 75 100 125 140 150 175 200" $PU` ; then
+if `list_include_item "0 0.5 1 1.5 2 10 20 25 30 35 40 45 50 70 75 100 125 140 150 175 200" $PU` ; then
   echo "PU value $PU available in list"
 else 
   echo "ERROR, not a valid PU value! quitting!"
@@ -101,20 +102,14 @@ echo "[$(date '+%F %T')] wrapper ready"
 #########################
 #now the actual commands for the generation
 echo "running Step 1 from directory $PWD"
-if [[ "$PU" -eq "1" ]]; then
-    cmsDriver.py MinBias_14TeV_pythia8_TuneCUETP8M1_cfi  --conditions auto:phase2_realistic -n ${NEVENTS} --era Phase2 --eventcontent FEVTDEBUG --relval 25000,250 -s GEN,SIM --datatier GEN-SIM --beamspot HLLHC14TeV --geometry Extended2023D21 --fileout file:step1.root --nThreads ${NTHREADS} 
-else
-    cmsDriver.py SingleNuE10_cfi.py --mc --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUG --relval 25000,250 -s GEN,SIM --datatier GEN-SIM --beamspot HLLHC --geometry Extended2023D21 --fileout file:step1.root --nThreads ${NTHREADS} 
+cmsDriver.py SingleNuE10_cfi.py --mc --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUG --relval 25000,250 -s GEN,SIM --datatier GEN-SIM --beamspot HLLHC --geometry Extended2023D21 --fileout file:step1.root --nThreads ${NTHREADS} 
 # > step1_PU$PU.log  2>&1--restoreRNDSeeds False 
-fi
 
 echo "running Step 2 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
-    cmsDriver.py step2 --mc --conditions auto:phase2_realistic -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein file:step1.root --fileout file:step2.root --nThreads ${NTHREADS}
-elif [[ "$PU" -eq "1" ]]; then
-    cmsDriver.py step2  --conditions auto:phase2_realistic -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n ${NEVENTS} --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein  file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS} 
+    cmsDriver.py step2 --mc --conditions auto:phase2_realistic -s DIGI:pdigi,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein file:step1.root --fileout file:step2.root --nThreads ${NTHREADS}
 else
-    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup $PUSTRING --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS}
+    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup $PUSTRING --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS}
 fi
 echo "removing step1.root to make some space"
 rm step1.root
@@ -122,8 +117,6 @@ rm step1.root
 echo "running Step 3 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
     cmsDriver.py step3 --mc --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --geometry Extended2023D21 --filein file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
-elif [[ "$PU" -eq "1" ]]; then
-    cmsDriver.py step3  --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --geometry Extended2023D21 --filein  file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
 else
     cmsDriver.py step3 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --pileup $PUSTRING --geometry Extended2023D21 --filein file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
 fi
