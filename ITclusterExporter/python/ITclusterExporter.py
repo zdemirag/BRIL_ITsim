@@ -7,9 +7,9 @@ import FWCore.ParameterSet.VarParsing as VarParsing
 process = cms.Process("ITclusterExporter")
 
 # set up the options
-options = VarParsing.VarParsing('export')
+options = VarParsing.VarParsing('analysis')
 #set up the defaults
-options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_100.0.root'
+options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_pixel_PU_175.0.root'
 options.maxEvents = 1000 #all events
 
 #get and parse command line arguments
@@ -38,7 +38,8 @@ process.source = cms.Source("PoolSource",
 
 # the config of my analyzer
 process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterExporter',
-                                         clusters=cms.InputTag("siPixelClusters")
+                                         clusters=cms.InputTag("siPixelClusters"),
+                                         disk=cms.untracked.uint32(1)
                                          )
 
 # the TFIleService that produces the output root files
