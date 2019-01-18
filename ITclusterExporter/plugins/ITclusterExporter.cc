@@ -18,8 +18,8 @@ Implementation:
 
 // system include files
 // system include files
-#include <memory>
 #include <fstream>
+#include <memory>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -60,38 +60,37 @@ Implementation:
 // from  edm::one::EDAnalyzer<>
 // This will improve performance in multithreaded jobs.
 
-
 class ITclusterExporter : public edm::one::EDAnalyzer<edm::one::SharedResources> {
-    public:
-        explicit ITclusterExporter(const edm::ParameterSet&);
-        ~ITclusterExporter();
+public:
+    explicit ITclusterExporter(const edm::ParameterSet&);
+    ~ITclusterExporter();
 
-        static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
-    private:
-        virtual void beginJob() override;
-        virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
-        virtual void endJob() override;
+private:
+    virtual void beginJob() override;
+    virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
+    virtual void endJob() override;
 
-        // ----------member data ---------------------------
-        edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
+    // ----------member data ---------------------------
+    edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
 
-        // the pointers to geometry, topology and clusters
-        // these are members so all functions can access them without passing as argument
-        const TrackerTopology* tTopo = NULL;
-        const TrackerGeometry* tkGeom = NULL;
-        const edmNew::DetSetVector<SiPixelCluster>* clusters = NULL;
-        //from config file
-        uint32_t m_disk;
-        uint32_t m_module;
-        //event counter
-        uint32_t m_nevents;
-        //fstreams
-        std::ofstream ring1;
-        std::ofstream ring2;
-        std::ofstream ring3;
-        std::ofstream ring4;
-        std::ofstream ring5;
+    // the pointers to geometry, topology and clusters
+    // these are members so all functions can access them without passing as argument
+    const TrackerTopology* tTopo = NULL;
+    const TrackerGeometry* tkGeom = NULL;
+    const edmNew::DetSetVector<SiPixelCluster>* clusters = NULL;
+    //from config file
+    uint32_t m_disk;
+    uint32_t m_module;
+    //event counter
+    uint32_t m_nevents;
+    //fstreams
+    std::ofstream ring1;
+    std::ofstream ring2;
+    std::ofstream ring3;
+    std::ofstream ring4;
+    std::ofstream ring5;
 };
 
 //
@@ -105,14 +104,13 @@ class ITclusterExporter : public edm::one::EDAnalyzer<edm::one::SharedResources>
 //
 // constructors and destructor
 //
-ITclusterExporter::ITclusterExporter(const edm::ParameterSet& iConfig) :
-    m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("clusters")))
+ITclusterExporter::ITclusterExporter(const edm::ParameterSet& iConfig)
+    : m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("clusters")))
     , m_disk(iConfig.getUntrackedParameter<uint32_t>("disk"))
 {
     //now do what ever initialization is needed
     m_nevents = 0;
-    m_module =1;
-
+    m_module = 1;
 }
 
 ITclusterExporter::~ITclusterExporter()
@@ -166,16 +164,18 @@ void ITclusterExporter::analyze(const edm::Event& iEvent, const edm::EventSetup&
         unsigned int module = (tTopo->pxfModule(detId));
 
         //now make sure we are only looking at TEPX
-        if(side != 1) continue;
+        if (side != 1)
+            continue;
         if (layer < 9)
             continue;
-        else if (layer -8 != m_disk)
+        else if (layer - 8 != m_disk)
             continue;
 
-        if (module != m_module) continue;
+        if (module != m_module)
+            continue;
 
         //now I am sure that only modules m_module in disk m_disk pass
-        std::cout << "Disk: "<< layer-8 << " Ring " << ring << " Module " << module << std::endl;
+        std::cout << "Disk: " << layer - 8 << " Ring " << ring << " Module " << module << std::endl;
 
         // Get the geomdet
         //const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
@@ -185,16 +185,18 @@ void ITclusterExporter::analyze(const edm::Event& iEvent, const edm::EventSetup&
         // the number of clusters for this module with DetID detId
         unsigned int nClu = DSVit->size();
 
-        if(ring ==1)
+        if (ring == 1)
             ring1 << "Event " << nClu << std::endl;
-        else if (ring ==2)
+        else if (ring == 2)
             ring2 << "Event " << nClu << std::endl;
-        else if (ring ==3)
+        else if (ring == 3)
             ring3 << "Event " << nClu << std::endl;
-        else if (ring ==4)
+        else if (ring == 4)
             ring4 << "Event " << nClu << std::endl;
-        else if (ring ==5)
+        else if (ring == 5)
             ring5 << "Event " << nClu << std::endl;
+
+        unsigned int cluCounter = 0;
 
         //now loop the clusters for each detector
         for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = DSVit->begin(); cluit != DSVit->end(); cluit++) {
@@ -208,22 +210,21 @@ void ITclusterExporter::analyze(const edm::Event& iEvent, const edm::EventSetup&
             //list of
             //x coordinate in pixels, y coordinate, adc, cluster number
             int size = cluit->size();
-            for(int i =0; i < size; i++)
-            {
+            for (int i = 0; i < size; i++) {
                 SiPixelCluster::Pixel pix = cluit->pixel(i);
                 //               f << p.x << ' ' << p.y << ' ' << p.adc << ' ' << i << '\n';
-                if(ring ==1)
-                    ring1 <<  pix.x << " " << pix.y << " " << pix.adc << " " << i << std::endl;
-                else if (ring ==2)
-                    ring2 <<  pix.x << " " << pix.y << " " << pix.adc << " " << i << std::endl;
-                else if (ring ==3)
-                    ring3 <<  pix.x << " " << pix.y << " " << pix.adc << " " << i << std::endl;
-                else if (ring ==4)
-                    ring4 <<  pix.x << " " << pix.y << " " << pix.adc << " " << i << std::endl;
-                else if (ring ==5)
-                    ring5 <<  pix.x << " " << pix.y << " " << pix.adc << " " << i << std::endl;
-
+                if (ring == 1)
+                    ring1 << pix.x << " " << pix.y << " " << pix.adc << " " << cluCounter << std::endl;
+                else if (ring == 2)
+                    ring2 << pix.x << " " << pix.y << " " << pix.adc << " " << cluCounter << std::endl;
+                else if (ring == 3)
+                    ring3 << pix.x << " " << pix.y << " " << pix.adc << " " << cluCounter << std::endl;
+                else if (ring == 4)
+                    ring4 << pix.x << " " << pix.y << " " << pix.adc << " " << cluCounter << std::endl;
+                else if (ring == 5)
+                    ring5 << pix.x << " " << pix.y << " " << pix.adc << " " << cluCounter << std::endl;
             }
+            cluCounter++;
 
         } //end of cluster loop
     }     //end of module loop
@@ -236,19 +237,19 @@ void ITclusterExporter::beginJob()
 {
     //open the filestreams
     std::stringstream filename;
-    filename << "Clusters_Disk" << m_disk << "_Ring1_Module" << m_module <<".txt";
+    filename << "Clusters_Disk" << m_disk << "_Ring1_Module" << m_module << ".txt";
     ring1.open(filename.str().c_str(), std::ofstream::out);
     filename.str("");
-    filename << "Clusters_Disk" << m_disk << "_Ring2_Module" << m_module <<".txt";
+    filename << "Clusters_Disk" << m_disk << "_Ring2_Module" << m_module << ".txt";
     ring2.open(filename.str().c_str(), std::ofstream::out);
     filename.str("");
-    filename << "Clusters_Disk" << m_disk << "_Ring3_Module" << m_module <<".txt";
+    filename << "Clusters_Disk" << m_disk << "_Ring3_Module" << m_module << ".txt";
     ring3.open(filename.str().c_str(), std::ofstream::out);
     filename.str("");
-    filename << "Clusters_Disk" << m_disk << "_Ring4_Module" << m_module <<".txt";
+    filename << "Clusters_Disk" << m_disk << "_Ring4_Module" << m_module << ".txt";
     ring4.open(filename.str().c_str(), std::ofstream::out);
     filename.str("");
-    filename << "Clusters_Disk" << m_disk << "_Ring5_Module" << m_module <<".txt";
+    filename << "Clusters_Disk" << m_disk << "_Ring5_Module" << m_module << ".txt";
     ring5.open(filename.str().c_str(), std::ofstream::out);
     filename.str("");
 }
