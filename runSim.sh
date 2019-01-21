@@ -21,7 +21,8 @@ EVENTCONTENT=FEVTDEBUG
 
 ##### change me to your needs #####
 NTHREADS=10
-PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root
+#PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root
+PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/minBiasFile.root
 OUTDIR=/eos/user/g/gauzinge/PUdata
 ##################################
 

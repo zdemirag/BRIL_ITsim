@@ -134,6 +134,7 @@ scram b -j8
 ```
 
 Congratulations, you are all set for running the actual simulation!
+Actually, once you have the whole workflow running, it might be easier to also submit the PU generation as a batch job on HT Condor. Read on for more details.
 
 ### Running the full Simulation
 There are 3 possible ways to run the full simulation. The normal way using the `runTheMatrix.py` command, a wrapper script called `runSim.sh` that is part of this repo or in batch mode on the CERN HT Condor batch service. The details will be described in the following sections!
@@ -194,13 +195,20 @@ Before you do anything, first read the HT Condor [guide](http://batchdocs.web.ce
 
 
 
-Done? Good, now you know about submission files. Have a look at the `PUgeneration.sub` file proveded with this repo. Change the PU parameter variable, the NEvents variable, the request_cpu number to match your number of threads in the `runSim.sh` script and the number of parallel jobs. Try with a small number of events and only one job first to verify that things work ok.
+Done? Good, now you know about submission files. Have a look at the `generatePU.sub` file proveded with this repo. Change the PU parameter variable, the NEvents variable, the request_cpu number to match your number of threads in the `runSim.sh` script and the number of parallel jobs. Try with a small number of events and only one job first to verify that things work ok.
 
 ```sh
 condor_submit PUgeneration.sub
 ```
 
 and be patient and watch as your quota goes away....Happy simulating!
+
+There is also a wrapper script for the generation of the MinBias sample called `runMinBias.sh` and a corresponding `generateMinBias.sub` submission file. Functionality is exactly the same except that `runMinBias.sh` takes only the number of events as command line argument. As always, check all variables and paths in these scripts before running.
+
+Depending on the number of events you want to simulate, you should generate N minBias events where
+N = Nevents * PU * OOT_PU_range
+
+The PU is your max PU number so most likely 200, the PPT_PU_range is the number of BX that are simulated around the actual event to account for out-of-time Pileup. The default value is 15. Since N in the above quickly explodes, in practice it should be ok to generate a factor of 10 more minBias events than events you want to have as statistics. So for 10k events, use 100k minBias events.
 
 
 ###  Running the BRIL IT Cluster analyzer
