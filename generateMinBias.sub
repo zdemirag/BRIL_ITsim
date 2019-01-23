@@ -1,4 +1,4 @@
-NEvents             = 1000
+NEvents             = 300000
 
 executable          = runMinBias.sh
 arguments           = $(NEvents)

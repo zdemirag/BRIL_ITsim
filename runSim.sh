@@ -1,4 +1,4 @@
-#!/bin/bash
+u!/bin/bash
 
 # list_include_item "10 11 12" "2"
 function list_include_item {
@@ -23,7 +23,8 @@ EVENTCONTENT=FEVTDEBUG
 NTHREADS=10
 #PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root
 PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/minBiasFile.root
-OUTDIR=/eos/user/g/gauzinge/PUdata
+#OUTDIR=/eos/user/g/gauzinge/PUdata
+OUTDIR=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim
 ##################################
 
 if test -z "$PU" 
@@ -59,6 +60,11 @@ then
 else
     echo "Jobid $JOBID"
 fi
+
+SEED=$((JOBID*1000))
+SEEDOFFSET=$((NTHREADS+5))
+
+echo "Seed = ${SEED} and offset = ${SEEDOFFSET}"
 
 #########################
 #Setup CMSSW framework
@@ -108,9 +114,10 @@ cmsDriver.py SingleNuE10_cfi.py --mc --conditions auto:phase2_realistic -n $NEVE
 
 echo "running Step 2 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
-    cmsDriver.py step2 --mc --conditions auto:phase2_realistic -s DIGI:pdigi,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein file:step1.root --fileout file:step2.root --nThreads ${NTHREADS}
+    cmsDriver.py step2 --mc --conditions auto:phase2_realistic -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein file:step1.root --fileout file:step2.root --nThreads ${NTHREADS}
 else
-    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS}
+    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS} --customise_commands "process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(${SEED})" 
+# ";process.RandomNumberGeneratorService.generator.eventSeedOffset = cms.untracked.uint32(${SEEDOFFSET})"
 fi
 echo "removing step1.root to make some space"
 rm step1.root

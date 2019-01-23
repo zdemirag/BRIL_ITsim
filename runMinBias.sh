@@ -6,7 +6,7 @@ EVENTCONTENT=FEVTDEBUG
 
 ##### change me to your needs #####
 NTHREADS=10
-PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/minBiasFile.root
+PUFILE=/afs/cern.ch/work/g/gauzinge/public/minBiasFile300k.root
 ##################################
 
 if test -z "$NEVENTS" 
