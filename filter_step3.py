@@ -9,7 +9,7 @@ process = cms.Process("ITclusterAnalyzer")
 # set up the options
 options = VarParsing.VarParsing('analysis')
 #set up the defaults
-options.inputFiles = 'file:/afs/cern.ch/work/g/gauzinge/public/PU100/step3_100.0.root'
+options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim/step3_20.0.root'
 # 'file:/afs/cern.ch/work/g/gauzinge/public/condorout/step3_100.1.root',
 # options.tag='0'
 options.outputFile='slimmed.root'
@@ -51,6 +51,7 @@ process.myoutput = cms.OutputModule("PoolOutputModule",
 
 
 process.myoutput.outputCommands.append('drop  *')
+process.myoutput.outputCommands.append('keep  *_g4SimHits__SIM')
 process.myoutput.outputCommands.append('keep  *_*_TrackerHitsPixelEndcapHighTof_*')
 process.myoutput.outputCommands.append('keep  *_*_TrackerHitsPixelEndcapLowTof_*')
 process.myoutput.outputCommands.append('keep  *_*_TrackerHitsPixelBarrelHighTof_*')

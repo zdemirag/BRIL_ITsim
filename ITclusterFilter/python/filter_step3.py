@@ -51,6 +51,7 @@ process.myoutput = cms.OutputModule("PoolOutputModule",
 
 
 process.myoutput.outputCommands.append('drop  *')
+process.myoutput.outputCommands.append('keep  *_g4SimHits__SIM')
 process.myoutput.outputCommands.append('keep  *_*_TrackerHitsPixelEndcapHighTof_*')
 process.myoutput.outputCommands.append('keep  *_*_TrackerHitsPixelEndcapLowTof_*')
 process.myoutput.outputCommands.append('keep  *_*_TrackerHitsPixelBarrelHighTof_*')

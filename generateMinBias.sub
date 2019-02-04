@@ -7,7 +7,7 @@ error               = batchlog/runMinBias.$(ClusterId).err
 log                 = batchlog/runMinBiasSim.$(ClusterId).log
 transfer_input_files    = sandbox.tar.bz2
 #getenv              = True
-request_cpus        = 10
+request_cpus        = 12
 
 
 transfer_output_files = ""

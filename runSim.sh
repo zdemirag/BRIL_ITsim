@@ -61,8 +61,8 @@ else
     echo "Jobid $JOBID"
 fi
 
-SEED=$((JOBID*1000))
-SEEDOFFSET=$((NTHREADS+5))
+SEED=$((JOBID*1000+1234))
+#SEEDOFFSET=$((NTHREADS+5))
 
 echo "Seed = ${SEED} and offset = ${SEEDOFFSET}"
 
@@ -116,7 +116,7 @@ echo "running Step 2 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
     cmsDriver.py step2 --mc --conditions auto:phase2_realistic -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein file:step1.root --fileout file:step2.root --nThreads ${NTHREADS}
 else
-    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS} --customise_commands "process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(${SEED})" 
+    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS} --customise_commands "process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(${SEED}); process.mix.seed = cms.int32(${SEED})"
 # ";process.RandomNumberGeneratorService.generator.eventSeedOffset = cms.untracked.uint32(${SEEDOFFSET})"
 fi
 echo "removing step1.root to make some space"
