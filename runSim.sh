@@ -1,4 +1,4 @@
-u!/bin/bash
+#!/bin/bash
 
 # list_include_item "10 11 12" "2"
 function list_include_item {
@@ -21,10 +21,9 @@ EVENTCONTENT=FEVTDEBUG
 
 ##### change me to your needs #####
 NTHREADS=10
-#PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root
-PUFILE=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/myMinBiasSample/minBiasFile.root
-#OUTDIR=/eos/user/g/gauzinge/PUdata
-OUTDIR=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim
+PUFILE=/afs/cern.ch/work/g/gauzinge/public/minBias300k.root
+OUTDIR=/eos/user/g/gauzinge/PUdata
+#OUTDIR=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim
 ##################################
 
 if test -z "$PU" 
@@ -36,7 +35,7 @@ else
    echo "Using pileup string "$PUSTRING
 fi
 
-if `list_include_item "0 0.5 1 1.5 2 10 20 25 30 35 40 45 50 70 75 100 125 140 150 175 200" $PU` ; then
+if `list_include_item "0 05 1 15 2 10 20 25 30 35 40 45 50 70 75 100 125 140 150 175 200" $PU` ; then
   echo "PU value $PU available in list"
 else 
   echo "ERROR, not a valid PU value! quitting!"

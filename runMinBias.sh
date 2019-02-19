@@ -1,12 +1,13 @@
 #!/bin/bash
 
 NEVENTS=$1
+JOBID=$2
 EVENTCONTENT=FEVTDEBUG
 #replacinge pdigi_valid with pdigi
 
 ##### change me to your needs #####
 NTHREADS=10
-PUFILE=/afs/cern.ch/work/g/gauzinge/public/minBiasFile300k_bak.root
+PUFILE=/afs/cern.ch/work/g/gauzinge/public/minBiasFile100k_${JOBID}.root
 ##################################
 
 if test -z "$NEVENTS" 

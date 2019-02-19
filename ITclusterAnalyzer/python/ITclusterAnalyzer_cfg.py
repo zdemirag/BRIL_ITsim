@@ -40,6 +40,8 @@ process.source = cms.Source("PoolSource",
 # the config of my analyzer
 process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterAnalyzer',
                                          clusters=cms.InputTag("siPixelClusters"),
+                                         simlinks=cms.InputTag("simSiPixelDigis"),
+                                         # simtracks=cms.InputTag("g4SimHits"),
                                          maxBin=cms.untracked.uint32(5000),
                                          docoincidence=cms.untracked.bool(True),
                                          dx_cut=cms.double(.5),

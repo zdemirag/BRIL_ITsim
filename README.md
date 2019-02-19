@@ -68,9 +68,9 @@ Edit the file `mySimDir/CMSSW_10_4_0_pre2/src/Configuration/StandardSequences/py
 
 ```py
 # for BRIL linearity studies
-addMixingScenario("AVE_0.5_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 0.5})
+addMixingScenario("AVE_05_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 0.5})
 addMixingScenario("AVE_1_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 1})
-addMixingScenario("AVE_1.5_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 1.5})
+addMixingScenario("AVE_15_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 1.5})
 addMixingScenario("AVE_2_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 1.5})
 ```
 

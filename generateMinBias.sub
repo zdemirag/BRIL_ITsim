@@ -1,7 +1,7 @@
-NEvents             = 300000
+NEvents             = 100000
 
 executable          = runMinBias.sh
-arguments           = $(NEvents)
+arguments           = $(NEvents) $(ProcId)
 output              = batchlog/runMinBias.$(ClusterId).out
 error               = batchlog/runMinBias.$(ClusterId).err
 log                 = batchlog/runMinBiasSim.$(ClusterId).log
@@ -12,4 +12,4 @@ request_cpus        = 12
 
 transfer_output_files = ""
 +JobFlavour        = "nextweek"
-queue
+queue 3
