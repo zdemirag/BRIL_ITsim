@@ -18,6 +18,7 @@ Implementation:
 
 // system include files
 #include <memory>
+#include <algorithm>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -93,9 +94,11 @@ class ITclusterAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>
         virtual void endJob() override;
 
         //bool findCoincidence(DetId, Global3DPoint, bool);
-        bool findCoincidence2x(DetId, Global3DPoint, edmNew::DetSet<SiPixelCluster>::const_iterator&);
-        bool findCoincidence3x(DetId, Global3DPoint, edmNew::DetSet<SiPixelCluster>::const_iterator&);
+        bool findCoincidence2x(DetId, Global3DPoint, unsigned int&, edmNew::DetSet<SiPixelCluster>::const_iterator&);
+        bool findCoincidence3x(DetId, Global3DPoint, unsigned int&, edmNew::DetSet<SiPixelCluster>::const_iterator&);
         edm::DetSetVector<PixelDigiSimLink>::const_iterator findSimLinkDetSet(unsigned int thedetid);
+        std::set<unsigned int> getSimTrackId(edm::DetSetVector<PixelDigiSimLink>::const_iterator, edmNew::DetSet<SiPixelCluster>::const_iterator);
+        bool areSameSimTrackId(std::set<unsigned int> first, std::set<unsigned int> second, std::set<unsigned int>&);
 
         // ----------member data ---------------------------
         edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
@@ -236,9 +239,9 @@ void ITclusterAnalyzer::beginJob()
             m_diskHistos2x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
             std::stringstream histonamefake;
-            histoname << "Number of fake 2x Coincidences for Disk " << disk << ";Ring;# of fake coincidences per event";
+            histonamefake << "Number of fake 2x Coincidences for Disk " << disk << ";Ring;# of fake coincidences per event";
             std::stringstream histotitlefake;
-            histotitle << "Number of fake 2x Coincidences for Disk " << disk;
+            histotitlefake << "Number of fake 2x Coincidences for Disk " << disk;
             //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos2xfake[i] = td.make<TH2F>(histotitlefake.str().c_str(), histonamefake.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
@@ -260,9 +263,9 @@ void ITclusterAnalyzer::beginJob()
             m_diskHistos3x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
             std::stringstream histonamefake;
-            histoname << "Number of fake 3x Coincidences for Disk " << disk << ";Ring;# of fake coincidences per event";
+            histonamefake << "Number of fake 3x Coincidences for Disk " << disk << ";Ring;# of fake coincidences per event";
             std::stringstream histotitlefake;
-            histotitle << "Number of fake 3x Coincidences for Disk " << disk;
+            histotitlefake << "Number of fake 3x Coincidences for Disk " << disk;
             //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos3xfake[i] = td.make<TH2F>(histotitlefake.str().c_str(), histonamefake.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
@@ -349,8 +352,6 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
         if (!geomDetUnit)
             continue;
 
-        //TODO:now get the simlink detset
-        //edm::DetSet<PixelDigiSimLink>::iterator simLinkDSiter = findSimLinkDetSet(rawid);
 
         unsigned int nClu = 0;
 
@@ -374,30 +375,49 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
             //std::cout << globalPosClu.x() << " " << globalPosClu.y() << std::endl;
             if (m_docoincidence) {
+                unsigned int coincidenceId;
                 edmNew::DetSet<SiPixelCluster>::const_iterator coincidenceCluster;
-                bool found = this->findCoincidence2x(detId, globalPosClu, coincidenceCluster);
+                bool found = this->findCoincidence2x(detId, globalPosClu, coincidenceId, coincidenceCluster);
                 if (found) {
                     //I have found a coincidence hit, so now I need to check the sim Track ID of each of the two clusters
                     //so first, let's get the simTrackID of the original cluster-for this I need to loop over all pixels
                     //and check if multiple SimTracks have caused it
-                    //then I need to do the same for the coincidence cluster
-                    int size = cluit->size();
-                    for (int i = 0; i < size; i++) {
-                        SiPixelCluster::Pixel pix = cluit->pixel(i);
-                        unsigned int clusterChannel = PixelDigi::pixelToChannel(pix.x, pix.y);
-                    }
+                    //if that is not the case, I use the SimLink DSViter and the DSiter (cluit) to get a simTrackID
+                    //I need to use the DetId of the coincidence cluster to get another SimLinkDSViter and the coincidence cluster DSiter for the second simTrackID
 
-                    x2Counter[hist_id][ring_id]++;
+                    //now get the simlink detset
+                    edm::DetSetVector<PixelDigiSimLink>::const_iterator simLinkDSViter = findSimLinkDetSet(rawid);
+                    std::set<unsigned int> simTrackId = this->getSimTrackId(simLinkDSViter, cluit);
+                    //now get the simlink detset based on the coincidence hit detid
+                    simLinkDSViter = findSimLinkDetSet(coincidenceId);
+                    std::set<unsigned int> coincidencesimTrackId = this->getSimTrackId(simLinkDSViter, coincidenceCluster);
+                    std::set<unsigned int> intersection;
+                    bool areSame = areSameSimTrackId(simTrackId, coincidencesimTrackId, intersection);
+
+                    if(areSame)
+                        x2Counter[hist_id][ring_id]++;
+                    else
+                        x2Counterfake[hist_id][ring_id]++;
+
                     m_trackerLayout2xZR->Fill(globalPosClu.z(), globalPosClu.perp());
                     m_trackerLayout2xYX->Fill(globalPosClu.x(), globalPosClu.y());
 
                     //done with 2 fold coincidences, now 3 fold
                     //only if we have a 2 fold coincidence we can search for a third one in another ring
                     found = false;
-                    //edmNew::DetSet<SiPixelCluster>::const_iterator coincidenceCluster;
-                    found = this->findCoincidence3x(detId, globalPosClu,coincidenceCluster);
+                    found = this->findCoincidence3x(detId, globalPosClu, coincidenceId, coincidenceCluster);
                     if (found) {
-                        x3Counter[hist_id][ring_id]++;
+                        //now get the simlink detset based on the coincidence hit detid
+                        simLinkDSViter = findSimLinkDetSet(coincidenceId);
+                        coincidencesimTrackId = this->getSimTrackId(simLinkDSViter, coincidenceCluster);
+                        std::set<unsigned int> intersection3x;
+                        areSame = areSameSimTrackId(intersection, coincidencesimTrackId, intersection3x);
+
+                        if(areSame)
+                            x3Counter[hist_id][ring_id]++;
+                        else
+                            x3Counterfake[hist_id][ring_id]++;
+
                         m_trackerLayout3xZR->Fill(globalPosClu.z(), globalPosClu.perp());
                         m_trackerLayout3xYX->Fill(globalPosClu.x(), globalPosClu.y());
                     }
@@ -414,7 +434,9 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
             m_diskHistosCluster[i]->Fill(j + 1, cluCounter[i][j]);
             if (m_docoincidence) {
                 m_diskHistos2x[i]->Fill(j + 1, x2Counter[i][j]);
+                m_diskHistos2xfake[i]->Fill(j + 1, x2Counterfake[i][j]);
                 m_diskHistos3x[i]->Fill(j + 1, x3Counter[i][j]);
+                m_diskHistos3xfake[i]->Fill(j + 1, x3Counterfake[i][j]);
             }
         }
     }
@@ -443,7 +465,7 @@ void ITclusterAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descrip
     //descriptions.addDefault(desc);
 }
 
-bool ITclusterAnalyzer::findCoincidence2x(DetId thedetid, Global3DPoint theglobalPosClu, edmNew::DetSet<SiPixelCluster>::const_iterator& foundCluster)
+bool ITclusterAnalyzer::findCoincidence2x(DetId thedetid, Global3DPoint theglobalPosClu, unsigned int& foundDetId, edmNew::DetSet<SiPixelCluster>::const_iterator& foundCluster)
 {
     bool found = false;
     uint32_t rawid = thedetid.rawId();
@@ -472,8 +494,8 @@ bool ITclusterAnalyzer::findCoincidence2x(DetId thedetid, Global3DPoint thegloba
 
     //now I have a raw id of the module I want to use
     DetId id(newid);
-    unsigned int ring = (tTopo->pxfBlade(id));
-    unsigned int module = (tTopo->pxfModule(id));
+    //unsigned int ring = (tTopo->pxfBlade(id));
+    //unsigned int module = (tTopo->pxfModule(id));
 
     edmNew::DetSetVector<SiPixelCluster>::const_iterator theit = clusters->find(id);
     if (theit == clusters->end()) {
@@ -512,7 +534,9 @@ bool ITclusterAnalyzer::findCoincidence2x(DetId thedetid, Global3DPoint thegloba
             if (r.dr < r_min) {
                 r_min = r.dr;
                 found = true;
+                // I assign this here to always have the closest cluster
                 foundCluster = cluit;
+                foundDetId = newid;
             }
 
             //std::cout << "Found matching cluster # " << nClu << std::endl;
@@ -537,14 +561,14 @@ bool ITclusterAnalyzer::findCoincidence2x(DetId thedetid, Global3DPoint thegloba
     return found;
 }
 
-bool ITclusterAnalyzer::findCoincidence3x(DetId thedetid, Global3DPoint theglobalPosClu, edmNew::DetSet<SiPixelCluster>::const_iterator& foundCluster)
+bool ITclusterAnalyzer::findCoincidence3x(DetId thedetid, Global3DPoint theglobalPosClu, unsigned int& foundDetId, edmNew::DetSet<SiPixelCluster>::const_iterator& foundCluster)
 {
     bool found = false;
     uint32_t rawid = thedetid.rawId();
     uint32_t newid = rawid;
     //now I have the raw ID and can mess with the bits
     //the side and layer are the same and I just have to look in a lower ring
-    unsigned int themodule = (tTopo->pxfModule(thedetid));
+    //unsigned int themodule = (tTopo->pxfModule(thedetid));
     unsigned int thering = (tTopo->pxfBlade(thedetid));
 
     unsigned int maxmodule = 0;
@@ -568,8 +592,8 @@ bool ITclusterAnalyzer::findCoincidence3x(DetId thedetid, Global3DPoint thegloba
         newid = (newid & 0xFFFC0C03) | ((newring & 0x3F) << 12) | ((newmodule & 0xFF) << 2);
 
         DetId id(newid);
-        unsigned int ring = (tTopo->pxfBlade(id));
-        unsigned int module = (tTopo->pxfModule(id));
+        //unsigned int ring = (tTopo->pxfBlade(id));
+        //unsigned int module = (tTopo->pxfModule(id));
 
         edmNew::DetSetVector<SiPixelCluster>::const_iterator theit = clusters->find(id);
         if (theit == clusters->end()) {
@@ -600,7 +624,7 @@ bool ITclusterAnalyzer::findCoincidence3x(DetId thedetid, Global3DPoint thegloba
                     && fabs(globalPosClu.y() - theglobalPosClu.y()) < m_dy
                     && fabs(globalPosClu.z() - theglobalPosClu.z()) < m_dz) {
                 nClu++;
-                found = true;
+
                 double delta_x = fabs(globalPosClu.x() - theglobalPosClu.x());
                 double delta_y = fabs(globalPosClu.y() - theglobalPosClu.y());
                 Residual r(delta_x, delta_y);
@@ -608,7 +632,10 @@ bool ITclusterAnalyzer::findCoincidence3x(DetId thedetid, Global3DPoint thegloba
 
                 if (r.dr < r_min) {
                     r_min = r.dr;
+                    found = true;
+                    // i assign this here to be sure to always have the closest cluster
                     foundCluster = cluit;
+                    foundDetId = newid;
                 }
                 //std::cout << "Found matching cluster # " << nClu << " which is a 3x coincidence" << std::endl;
                 //std::cout << "Original x: " << theglobalPosClu.x() << " y: " << theglobalPosClu.y() << " z: " << theglobalPosClu.z() << " ring: " << thering << " module: " << themodule << std::endl;
@@ -632,6 +659,54 @@ edm::DetSetVector<PixelDigiSimLink>::const_iterator ITclusterAnalyzer::findSimLi
     ////basic template
     edm::DetSetVector<PixelDigiSimLink>::const_iterator simLinkDS = simlinks->find(thedetid);
     return simLinkDS;
+}
+std::set<unsigned int> ITclusterAnalyzer::getSimTrackId(edm::DetSetVector<PixelDigiSimLink>::const_iterator simLinkDSViter, edmNew::DetSet<SiPixelCluster>::const_iterator cluster)
+{
+    int size = cluster->size();
+    std::set<unsigned int> simTrackIds;
+
+    for (int i = 0; i < size; i++) {
+
+        SiPixelCluster::Pixel pix = cluster->pixel(i);
+        unsigned int clusterChannel = PixelDigi::pixelToChannel(pix.x, pix.y);
+
+        if(simLinkDSViter != simlinks->end())
+        {
+            for(edm::DetSet<PixelDigiSimLink>::const_iterator it =simLinkDSViter->data.begin(); it != simLinkDSViter->data.end(); it++ )
+            {
+                if(clusterChannel == it->channel())
+                {
+                    simTrackIds.insert(it->SimTrackId());
+                }
+            }
+        }
+    }
+    //if(simTrackIds.size() != 1){
+    //std::cout << "WARNING: have more than 1 simTrackId for this cluster! " << std::endl;
+    //return 0;
+    //}
+    return simTrackIds;
+}
+
+bool ITclusterAnalyzer::areSameSimTrackId(std::set<unsigned int> first, std::set<unsigned int> second, std::set<unsigned int>& intersection)
+{
+    //method to check if the sim Track id is present in both sets
+    //std::set<unsigned int> intersection;
+    std::set_intersection(first.begin(), first.end(),second.begin(), second.end(),std::inserter(intersection,intersection.begin()));
+    if(!intersection.size())
+    {
+        std::cout << "WARNING, these clusters have not been caused by the same SimTrackID" << std::endl;
+        return false;
+    }
+    else if(intersection.size() ==1)
+    {
+        return true;
+    }
+    else
+    {
+        std::cout << "WARNING: both clusters caused by multiple tracks!" << std::endl;
+        return true;
+    }
 }
 
 DEFINE_FWK_MODULE(ITclusterAnalyzer);

@@ -2,14 +2,13 @@
 import FWCore.ParameterSet.Config as cms
 import FWCore.ParameterSet.VarParsing as VarParsing
 
-
 # create a new CMS process
 process = cms.Process("ITclusterAnalyzer")
 
 # set up the options
 options = VarParsing.VarParsing('analysis')
 #set up the defaults
-options.inputFiles = 'file:/afs/cern.ch/work/g/gauzinge/public/PU100/step3_100.0.root'
+options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_pixel_PU_1.1.root'
 options.outputFile='summary.root'
 options.maxEvents = -1 #all events
 
@@ -28,7 +27,9 @@ process.MessageLogger.cerr.INFO = cms.untracked.PSet(
     limit=cms.untracked.int32(-1)
 )
 
-process.options = cms.untracked.PSet(wantSummary=cms.untracked.bool(False))
+process.options = cms.untracked.PSet(wantSummary=cms.untracked.bool(False)
+                                    # ,SkipEvent = cms.untracked.vstring('ProductNotFound')
+                                    )
 
 process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(options.maxEvents))
 
@@ -37,15 +38,17 @@ process.source = cms.Source("PoolSource",
                             fileNames=cms.untracked.vstring(options.inputFiles)
                             )
 
+process.content = cms.EDAnalyzer("EventContentAnalyzer")
 # the config of my analyzer
 process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterAnalyzer',
                                          clusters=cms.InputTag("siPixelClusters"),
-                                         simlinks=cms.InputTag("simSiPixelDigis"),
+                                         simlinks=cms.InputTag("simSiPixelDigis", "Pixel", "DIGI2RAW"),
+                                         # simlinks=cms.InputTag("Pixel"),
                                          # simtracks=cms.InputTag("g4SimHits"),
                                          maxBin=cms.untracked.uint32(5000),
                                          docoincidence=cms.untracked.bool(True),
-                                         dx_cut=cms.double(.5),
-                                         dy_cut=cms.double(.5),
+                                         dx_cut=cms.double(.1),
+                                         dy_cut=cms.double(.1),
                                          dz_cut=cms.double(0.9)
                                          )
 
@@ -55,4 +58,5 @@ process.TFileService = cms.Service("TFileService",
                                    )
 
 
+# process.p = cms.Path( ... process.content * ...  )
 process.p = cms.Path(process.BRIL_IT_Analysis)
