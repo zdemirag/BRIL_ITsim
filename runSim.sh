@@ -18,9 +18,6 @@ PU=$1
 NEVENTS=$2
 JOBID=$3
 
-#EVENTCONTENT=FEVTDEBUG
-#replacinge pdigi_valid with pdigi
-
 ################################################################################
 ##CHANGE ME ACCORDING TO YOUR NEEDS
 ################################################################################
@@ -150,6 +147,7 @@ ${command}
 ################################################################################
 ##CLEANING UP BEHIND MYSELF
 ################################################################################
+
 echo "Done running the generation"
 echo "Cleaning up behing me"
 rm -rf tmp/

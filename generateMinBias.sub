@@ -1,4 +1,4 @@
-NEvents             = 100000
+NEvents             = 30000
 
 executable          = runMinBias.sh
 arguments           = $(NEvents) $(ProcId)
@@ -7,9 +7,9 @@ error               = batchlog/runMinBias.$(ClusterId).err
 log                 = batchlog/runMinBiasSim.$(ClusterId).log
 transfer_input_files    = sandbox.tar.bz2
 #getenv              = True
-request_cpus        = 12
+request_cpus        = 10
 
 
 transfer_output_files = ""
 +JobFlavour        = "nextweek"
-queue 3
+queue 10

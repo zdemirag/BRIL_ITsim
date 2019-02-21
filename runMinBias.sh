@@ -1,28 +1,51 @@
 #!/bin/bash
 
+#assign the command line arguments
 NEVENTS=$1
 JOBID=$2
-EVENTCONTENT=FEVTDEBUG
-#replacinge pdigi_valid with pdigi
 
-##### change me to your needs #####
+################################################################################
+##CHANGE ME ACCORDING TO YOUR NEEDS
+################################################################################
 NTHREADS=10
-PUFILE=/afs/cern.ch/work/g/gauzinge/public/minBiasFile100k_${JOBID}.root
-##################################
+OUTDIR=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
+################################################################################
+################################################################################
+################################################################################
 
+#some sanity checks on the command line arguments
 if test -z "$NEVENTS" 
 then
    echo "No # of Events specified. Please run as runSim.sh PU NEVENTS if you want to use a number different than default"
-   echo "The default value is 10 events"
-   NEVENTS=10
-   #return
+   #echo "The default value is 10 events"
+   #NEVENTS=10
+   return
 else
-   echo "running over $NEVENTS events "
+   #echo "running over $NEVENTS events "
 fi
 
-#########################
-#Setup CMSSW framework
-#########################
+if test -z "$JOBID" 
+then
+   echo "No job ID passed - I will exit"
+   return
+fi
+
+################################################################################
+#PRINT THE ARGUMENTS SUMMARY
+################################################################################
+
+echo '###########################################################################'
+echo 'Configuration: '
+echo 'Number of Events: '${NEVENTS}
+echo 'JobId: '${JOBID}
+echo 'OutputDirectory: ' ${OUTDIR}
+echo 'Number of Threads: ' ${NTHREADS}
+echo '###########################################################################'
+
+################################################################################
+#SETUP CMSSW FRAMEWORK
+################################################################################
+
 #Extract sandbox
 tar -xf sandbox.tar.bz2
 #Keep track of release sandbox version
@@ -58,15 +81,25 @@ eval $(scramv1 runtime -sh) || echo "The command 'cmsenv' failed!"
 cd "$basedir"
 echo "[$(date '+%F %T')] wrapper ready"
 
-#########################
-#Run Generation
-#########################
-#now the actual commands for the generation
-echo "Generating MinBias Sampel with "${NEVENTS}" Events"
+################################################################################
+##RUN THE ACTUAL SIMULATION
+################################################################################
 
-cmsDriver.py MinBias_14TeV_pythia8_TuneCUETP8M1_cfi  --conditions auto:phase2_realistic -n ${NEVENTS} --era Phase2 --eventcontent ${EVENTCONTENT} --relval 90000,100 -s GEN,SIM --datatier GEN-SIM --beamspot HLLHC14TeV --geometry Extended2023D21 --nThreads ${NTHREADS} --fileout file:${PUFILE}
+echo "Running the full minimum Bias generation from directory ${PWD}!"
+command="cmsRun BRIL_ITsimMinBias_cfg.py print \
+            nEvents=${NEVENTS} \
+            nThreads=${NTHREADS} \
+            jobId=${JOBID} \
+            outputDirectory=file:${OUTDIR}"
+
+echo 'Command: ' ${command}
+${command}
+
+################################################################################
+##CLEANING UP BEHIND MYSELF
+################################################################################
 
 echo "Done running the generation"
 echo "Cleaning up behing me"
-rm -rf tmp
-rm -rf CMSSW_10_4_0_pre2
+rm -rf tmp/
+rm -rf CMSSW_10_4_0_pre2/
