@@ -68,6 +68,7 @@ Edit the file `mySimDir/CMSSW_10_4_0_pre2/src/Configuration/StandardSequences/py
 
 ```py
 # for BRIL linearity studies
+addMixingScenario("AVE_0_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 0})
 addMixingScenario("AVE_05_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 0.5})
 addMixingScenario("AVE_1_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 1})
 addMixingScenario("AVE_15_BX_25ns",{'file': 'SimGeneral.MixingModule.mix_POISSON_average_cfi','BX':25, 'B': (-12,3), 'N': 1.5})
@@ -104,6 +105,8 @@ mkdir myMinBiasSample
 mv  MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.* myMinBiasSample/
 ```
 
+Alternatively you can use this file: `/afs/cern.ch/work/g/gauzinge/public/minBias300k.root` which uses geometry IT613.
+
 Congratulations, you are almost done! In order to use these events you have to edit a file in `mySimDir/CMSSW_10_4_0_pre2/src/Configuration/PyReleaseValidation/python/relval_steps.py`:
 the easiest is to search for the string _PUData_ in your editor. Then edit these lines:
 
@@ -124,7 +127,7 @@ for ds in defaultDataSets:
 change the last line to point to your Minimum Bias Sample file (be sure to use an absolute path from your home direcotory - otherwise batched simulations won't work):
 
 ```python
-PUDataSets[ds]={'-n':10,'--pileup':'AVE_35_BX_25ns','--pileup_input':'file:mySimDir/CMSSW_10_4_0_pre2/src/myMinBiasSample/MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.root'}
+PUDataSets[ds]={'-n':10,'--pileup':'AVE_35_BX_25ns','--pileup_input':'file:myMinBiasDataFile.root'}
 ```
 
 this will tell CMSSW to use your Minimum Bias Data sample as Pileup input instead of some files with a standard geometry from the database. This is really important. Next, you have to once more compile your work environment to make it pick up the changes:
@@ -198,7 +201,7 @@ Before you do anything, first read the HT Condor [guide](http://batchdocs.web.ce
 Done? Good, now you know about submission files. Have a look at the `generatePU.sub` file proveded with this repo. Change the PU parameter variable, the NEvents variable, the request_cpu number to match your number of threads in the `runSim.sh` script and the number of parallel jobs. Try with a small number of events and only one job first to verify that things work ok.
 
 ```sh
-condor_submit PUgeneration.sub
+condor_submit generatePU.sub
 ```
 
 and be patient and watch as your quota goes away....Happy simulating!

@@ -6,7 +6,7 @@ arguments           = $(PU_parameter) $(NEvents) $(ProcId)
 output              = batchlog/runSim.$(ClusterId).$(ProcId).out
 error               = batchlog/runSim.$(ClusterId).$(ProcId).err
 log                 = batchlog/runSim.$(ClusterId).log
-transfer_input_files    = sandbox.tar.bz2, step2_template_PU.py, ITclusterFilter/python/filter_step3.py
+transfer_input_files    = sandbox.tar.bz2, BRIL_ITsimPU_cfg.py
 #getenv              = True
 request_cpus        = 10
 

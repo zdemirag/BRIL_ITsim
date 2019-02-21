@@ -1,38 +1,49 @@
 #!/bin/bash
 
-# list_include_item "10 11 12" "2"
+# a helper function to parse PU values
 function list_include_item {
-local list="$1"
-local item="$2"
-if [[ $list =~ (^|[[:space:]])"$item"($|[[:space:]])  ]] ; then
-# yes, list include item
-  result=0
-else
-  result=1
-fi
-return $result
+    local list="$1"
+    local item="$2"
+    if [[ $list =~ (^|[[:space:]])"$item"($|[[:space:]])  ]] ; then
+        # yes, list include item
+        result=0
+    else
+        result=1
+    fi
+    return $result
 }
 
+#assign the command line arguments
 PU=$1
 NEVENTS=$2
 JOBID=$3
+
 #EVENTCONTENT=FEVTDEBUG
 #replacinge pdigi_valid with pdigi
 
-##### change me to your needs #####
+################################################################################
+##CHANGE ME ACCORDING TO YOUR NEEDS
+################################################################################
 NTHREADS=10
-PUFILE=/afs/cern.ch/work/g/gauzinge/public/minBias300k.root
-OUTDIR=/eos/user/g/gauzinge/PUdata
-#OUTDIR=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim
-##################################
 
+PUFILE=/afs/cern.ch/work/g/gauzinge/public/minBias300k.root
+
+#OUTDIR=/eos/user/g/gauzinge/PUdata
+OUTDIR=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim
+
+#additional variables for mixing module
+BUNCHSPACING=25
+MINBUNCH=-12
+MAXBUNCH=3
+################################################################################
+################################################################################
+################################################################################
+
+#some sanity checks on the command line arguments
 if test -z "$PU" 
 then
    echo "No Pileup number specified - please run as source runSim.sh PU"
    return
-#else
-   #PUSTRING="AVE_"$PU"_BX_25ns"
-   #echo "Using pileup string "$PUSTRING
 fi
 
 if `list_include_item "0 05 1 15 2 10 20 25 30 35 40 45 50 70 75 100 125 140 150 175 200" $PU` ; then
@@ -60,18 +71,28 @@ else
     echo "Jobid $JOBID"
 fi
 
-SEED=$((JOBID*1000+1234))
 
-echo "Seed = ${SEED} and offset = ${SEEDOFFSET}"
+################################################################################
+#PRINT THE ARGUMENTS SUMMARY
+################################################################################
 
-#for mixing module
-BUNCHSPACING=25
-MINBUNCH=-12
-MAXBUNCH=3
+echo '###########################################################################'
+echo 'Configuration: '
+echo 'Pielup Average: '${PU}
+echo 'Number of Events: '${NEVENTS}
+echo 'JobId: '${JOBID}
+echo 'Bunchspace: ' ${BUNCHSPACING}
+echo 'minBunch :' ${MINBUNCH}
+echo ' '
+echo 'PileupFile: ' ${PUFILE}
+echo 'OutputDirectory: ' ${OUTDIR}
+echo 'Number of Threads: ' ${NTHREADS}
+echo '###########################################################################'
 
-#########################
-#Setup CMSSW framework
-#########################
+################################################################################
+#SETUP CMSSW FRAMEWORK
+################################################################################
+
 #Extract sandbox
 tar -xf sandbox.tar.bz2
 #Keep track of release sandbox version
@@ -107,29 +128,33 @@ eval $(scramv1 runtime -sh) || echo "The command 'cmsenv' failed!"
 cd "$basedir"
 echo "[$(date '+%F %T')] wrapper ready"
 
+
 ################################################################################
-##HERE THE ORIGINAL CODE WOULD GO
+##RUN THE ACTUAL SIMULATION
 ################################################################################
 
 echo "Running the full simulation in one step from directory ${PWD}!"
 command="cmsRun BRIL_ITsimPU_cfg.py print \
             nEvents=${NEVENTS} \
-            pileupFile=${PUFILE} \
+            pileupFile=file:${PUFILE} \
             pileupAverage=${PU} \
             bunchSpace=${BUNCHSPACING} \
             minBunch=${MINBUNCH} \
             maxBunch=${MAXBUNCH} \
             nThreads=${NTHREADS} \
             jobId=${JOBID} \
-            outputDirectory=${OUTDIR}"
+            outputDirectory=file:${OUTDIR}"
 
-echo $command
+echo 'Command: ' ${command}
 ${command}
 
+################################################################################
+##CLEANING UP BEHIND MYSELF
+################################################################################
 echo "Done running the generation"
 echo "Cleaning up behing me"
-rm -rf tmp
-rm -rf CMSSW_10_4_0_pre2
+rm -rf tmp/
+rm -rf CMSSW_10_4_0_pre2/
 
 ########################
 #Prep the config file for step2 with PU

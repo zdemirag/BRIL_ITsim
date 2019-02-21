@@ -65,13 +65,13 @@ options.register ('jobId',
                                  VarParsing.varType.int,
                   "The job Id: 0")
 options.register ('outputDirectory',
-                  'file:/eos/user/g/gauzinge/PUdata/',
+                  'file:/eos/user/g/gauzinge/PUdata',
                                  VarParsing.multiplicity.singleton,
                                  VarParsing.varType.string,
                   "The output directory")
 
 options.parseArguments()
-options.outputFile=options.outputDirectory+'step3_pixel_PU_'+str(options.pileupAverage)+'.'+str(options.jobId)+'.root'
+options.outputFile=options.outputDirectory+'/step3_pixel_PU_'+str(options.pileupAverage)+'.'+str(options.jobId)+'.root'
 print("Output File: %s" % (options.outputFile))
 
 process = cms.Process('FULLSIM',eras.Phase2)
