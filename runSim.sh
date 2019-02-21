@@ -26,7 +26,6 @@ JOBID=$3
 ################################################################################
 NTHREADS=10
 
-#PUFILE=/afs/cern.ch/work/g/gauzinge/public/minBias300k.root
 FILE=file:
 PUPATH=${FILE}/afs/cern.ch/work/g/gauzinge/minBiasFiles/
 PUFILE=${PUPATH}minBiasFile100k_0.root,${PUPATH}minBiasFile100k_1.root,${PUPATH}minBiasFile100k_2.root
