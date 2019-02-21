@@ -20,8 +20,6 @@ then
    #echo "The default value is 10 events"
    #NEVENTS=10
    return
-else
-   #echo "running over $NEVENTS events "
 fi
 
 if test -z "$JOBID" 
