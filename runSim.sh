@@ -27,7 +27,7 @@ JOBID=$3
 NTHREADS=10
 
 FILE=file:
-PUPATH=${FILE}/afs/cern.ch/work/g/gauzinge/minBiasFiles/
+PUPATH=${FILE}/afs/cern.ch/work/g/gauzinge/public/minBiasFiles/
 PUFILE=${PUPATH}minBiasFile100k_0.root,${PUPATH}minBiasFile100k_1.root,${PUPATH}minBiasFile100k_2.root
 
 OUTDIR=/eos/user/g/gauzinge/PUdata
