@@ -16,7 +16,7 @@ return $result
 PU=$1
 NEVENTS=$2
 JOBID=$3
-EVENTCONTENT=FEVTDEBUG
+#EVENTCONTENT=FEVTDEBUG
 #replacinge pdigi_valid with pdigi
 
 ##### change me to your needs #####
@@ -30,9 +30,9 @@ if test -z "$PU"
 then
    echo "No Pileup number specified - please run as source runSim.sh PU"
    return
-else
-   PUSTRING="AVE_"$PU"_BX_25ns"
-   echo "Using pileup string "$PUSTRING
+#else
+   #PUSTRING="AVE_"$PU"_BX_25ns"
+   #echo "Using pileup string "$PUSTRING
 fi
 
 if `list_include_item "0 05 1 15 2 10 20 25 30 35 40 45 50 70 75 100 125 140 150 175 200" $PU` ; then
@@ -61,9 +61,13 @@ else
 fi
 
 SEED=$((JOBID*1000+1234))
-#SEEDOFFSET=$((NTHREADS+5))
 
 echo "Seed = ${SEED} and offset = ${SEEDOFFSET}"
+
+#for mixing module
+BUNCHSPACING=25
+MINBUNCH=-12
+MAXBUNCH=3
 
 #########################
 #Setup CMSSW framework
@@ -103,54 +107,74 @@ eval $(scramv1 runtime -sh) || echo "The command 'cmsenv' failed!"
 cd "$basedir"
 echo "[$(date '+%F %T')] wrapper ready"
 
-########################
-#Prep the config file for step2 with PU
-#######################
-cp step2_template_PU.py step2_PU${PU}.py
-sed -i "s/@NEVENTS@/${NEVENTS}/g" step2_PU${PU}.py
-sed -i "s/@PU@/${PU}/g" step2_PU${PU}.py
-sed -i "s#@PUFILE@#${PUFILE}#g" step2_PU${PU}.py
-sed -i "s/@NTHREADS@/${NTHREADS}/g" step2_PU${PU}.py
+################################################################################
+##HERE THE ORIGINAL CODE WOULD GO
+################################################################################
 
-#########################
-#Run Simulation
-#########################
-#now the actual commands for the generation
-echo "running Step 1 from directory $PWD"
-cmsDriver.py SingleNuE10_cfi.py --mc --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUG --relval 25000,250 -s GEN,SIM --datatier GEN-SIM --beamspot HLLHC --geometry Extended2023D21 --fileout file:step1.root --nThreads ${NTHREADS} 
-# > step1_PU$PU.log  2>&1--restoreRNDSeeds False 
+echo "Running the full simulation in one step from directory ${PWD}!"
+command="cmsRun BRIL_ITsimPU_cfg.py print \
+            nEvents=${NEVENTS} \
+            pileupFile=${PUFILE} \
+            pileupAverage=${PU} \
+            bunchSpace=${BUNCHSPACING} \
+            minBunch=${MINBUNCH} \
+            maxBunch=${MAXBUNCH} \
+            nThreads=${NTHREADS} \
+            jobId=${JOBID} \
+            outputDirectory=${OUTDIR}"
 
-echo "running Step 2 from directory $PWD"
-if [[ "$PU" -eq "0" ]]; then
-    cmsDriver.py step2 --mc --conditions auto:phase2_realistic -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein file:step1.root --fileout file:step2.root --nThreads ${NTHREADS}
-else
-    #cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS} --customise_commands "process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(${SEED}); process.mix.seed = cms.int32(${SEED})"
-    cmsRun step2_PU${PU}.py
-fi
-echo "removing step1.root to make some space"
-rm step1.root
-
-echo "running Step 3 from directory $PWD"
-if [[ "$PU" -eq "0" ]]; then
-    cmsDriver.py step3 --mc --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --geometry Extended2023D21 --filein file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
-else
-    cmsDriver.py step3 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
-fi
-echo "Removing step2.root to make some space"
-rm step2.root
-
-#remove all the unnecessary collections in the root file
-echo "Slimming file ..."
-
-cmsRun filter_step3.py print \
-    inputFiles=file:step3_${PU}.${JOBID}.root \
-    outputFile=step3_pixel_PU_${PU}.${JOBID}.root
-
-##now copy the files to afs
-echo "copying files to ${OUTDIR}"
-cp step3_pixel_PU_${PU}.${JOBID}.root ${OUTDIR}
+echo $command
+${command}
 
 echo "Done running the generation"
 echo "Cleaning up behing me"
 rm -rf tmp
 rm -rf CMSSW_10_4_0_pre2
+
+########################
+#Prep the config file for step2 with PU
+#######################
+#cp step2_template_PU.py step2_PU${PU}.py
+#sed -i "s/@NEVENTS@/${NEVENTS}/g" step2_PU${PU}.py
+#sed -i "s/@PU@/${PU}/g" step2_PU${PU}.py
+#sed -i "s#@PUFILE@#${PUFILE}#g" step2_PU${PU}.py
+#sed -i "s/@NTHREADS@/${NTHREADS}/g" step2_PU${PU}.py
+
+##########################
+##Run Simulation
+##########################
+##now the actual commands for the generation
+#echo "running Step 1 from directory $PWD"
+#cmsDriver.py SingleNuE10_cfi.py --mc --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent FEVTDEBUG --relval 25000,250 -s GEN,SIM --datatier GEN-SIM --beamspot HLLHC --geometry Extended2023D21 --fileout file:step1.root --nThreads ${NTHREADS} 
+## > step1_PU$PU.log  2>&1--restoreRNDSeeds False 
+
+#echo "running Step 2 from directory $PWD"
+#if [[ "$PU" -eq "0" ]]; then
+    #cmsDriver.py step2 --mc --conditions auto:phase2_realistic -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein file:step1.root --fileout file:step2.root --nThreads ${NTHREADS}
+#else
+    ##cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS} --customise_commands "process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(${SEED}); process.mix.seed = cms.int32(${SEED})"
+    #cmsRun step2_PU${PU}.py
+#fi
+#echo "removing step1.root to make some space"
+#rm step1.root
+
+#echo "running Step 3 from directory $PWD"
+#if [[ "$PU" -eq "0" ]]; then
+    #cmsDriver.py step3 --mc --conditions auto:phase2_realistic -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --geometry Extended2023D21 --filein file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
+#else
+    #cmsDriver.py step3 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} --runUnscheduled  -s RAW2DIGI,L1Reco,RECO,RECOSIM --datatier GEN-SIM-RECO --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step2.root  --fileout file:step3_${PU}.${JOBID}.root --nThreads ${NTHREADS}
+#fi
+#echo "Removing step2.root to make some space"
+#rm step2.root
+
+##remove all the unnecessary collections in the root file
+#echo "Slimming file ..."
+
+#cmsRun filter_step3.py print \
+    #inputFiles=file:step3_${PU}.${JOBID}.root \
+    #outputFile=step3_pixel_PU_${PU}.${JOBID}.root
+
+###now copy the files to afs
+#echo "copying files to ${OUTDIR}"
+#cp step3_pixel_PU_${PU}.${JOBID}.root ${OUTDIR}
+
