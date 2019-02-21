@@ -103,6 +103,15 @@ eval $(scramv1 runtime -sh) || echo "The command 'cmsenv' failed!"
 cd "$basedir"
 echo "[$(date '+%F %T')] wrapper ready"
 
+########################
+#Prep the config file for step2 with PU
+#######################
+cp step2_template_PU.py step2_PU${PU}.py
+sed -i "s/@NEVENTS@/${NEVENTS}/g" step2_PU${PU}.py
+sed -i "s/@PU@/${PU}/g" step2_PU${PU}.py
+sed -i "s#@PUFILE@#${PUFILE}#g" step2_PU${PU}.py
+sed -i "s/@NTHREADS@/${NTHREADS}/g" step2_PU${PU}.py
+
 #########################
 #Run Simulation
 #########################
@@ -115,8 +124,8 @@ echo "running Step 2 from directory $PWD"
 if [[ "$PU" -eq "0" ]]; then
     cmsDriver.py step2 --mc --conditions auto:phase2_realistic -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW -n $NEVENTS --geometry Extended2023D21 --era Phase2 --eventcontent ${EVENTCONTENT} --filein file:step1.root --fileout file:step2.root --nThreads ${NTHREADS}
 else
-    cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS} --customise_commands "process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(${SEED}); process.mix.seed = cms.int32(${SEED})"
-# ";process.RandomNumberGeneratorService.generator.eventSeedOffset = cms.untracked.uint32(${SEEDOFFSET})"
+    #cmsDriver.py step2 --mc --conditions auto:phase2_realistic --pileup_input file:${PUFILE} -n $NEVENTS --era Phase2 --eventcontent ${EVENTCONTENT} -s DIGI:pdigi_valid,L1,DIGI2RAW --datatier GEN-SIM-DIGI-RAW --pileup ${PUSTRING} --geometry Extended2023D21 --filein file:step1.root  --fileout file:step2.root --nThreads ${NTHREADS} --customise_commands "process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(${SEED}); process.mix.seed = cms.int32(${SEED})"
+    cmsRun step2_PU${PU}.py
 fi
 echo "removing step1.root to make some space"
 rm step1.root
