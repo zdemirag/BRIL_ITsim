@@ -26,7 +26,7 @@ options.register ('nEvents',
                   "The number of events to simulate: 10")
 options.register ('pileupFile',
                                  'file:/afs/cern.ch/work/g/gauzinge/public/minBias300k.root',
-                                 VarParsing.multiplicity.singleton,
+                                 VarParsing.multiplicity.list,
                                  VarParsing.varType.string,
                                  "File with Minimum Bias events to use as PU overlay")
 options.register ('pileupAverage',
@@ -96,7 +96,7 @@ process.load('Configuration.StandardSequences.DigiToRaw_cff')
 process.load('Configuration.StandardSequences.RawToDigi_cff')
 # process.load('Configuration.StandardSequences.L1Reco_cff')
 process.load('Configuration.StandardSequences.Reconstruction_cff')
-# process.load('Configuration.StandardSequences.RecoSim_cff')
+process.load('Configuration.StandardSequences.RecoSim_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
@@ -178,7 +178,8 @@ process.mix.bunchspace = cms.int32(options.bunchSpace)
 process.mix.minBunch = cms.int32(options.minBunch)
 process.mix.maxBunch = cms.int32(options.maxBunch)
 # process.mix.seed = cms.int32(@SEED@)
-process.mix.input.fileNames = cms.untracked.vstring([options.pileupFile])
+# process.mix.input.fileNames = cms.untracked.vstring([options.pileupFile])
+process.mix.input.fileNames = cms.untracked.vstring(options.pileupFile)
 process.mix.digitizers = cms.PSet(process.theDigitizersValid)
 
 # Path and EndPath definitions
@@ -191,12 +192,12 @@ process.digi2raw_step = cms.Path(process.DigiToRaw)
 process.raw2digi_step = cms.Path(process.RawToDigi)
 # process.L1Reco_step = cms.Path(process.L1Reco)
 process.reconstruction_step = cms.Path(process.reconstruction)
-# process.recosim_step = cms.Path(process.recosim)
+process.recosim_step = cms.Path(process.recosim)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 process.FEVTDEBUGoutput_step = cms.EndPath(process.FEVTDEBUGoutput)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary_step,process.simulation_step,process.digitisation_step,process.digi2raw_step,process.raw2digi_step,process.reconstruction_step,process.endjob_step,process.FEVTDEBUGoutput_step)
+process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary_step,process.simulation_step,process.digitisation_step,process.digi2raw_step,process.raw2digi_step,process.reconstruction_step,process.recosim_step,process.endjob_step,process.FEVTDEBUGoutput_step)
 
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)

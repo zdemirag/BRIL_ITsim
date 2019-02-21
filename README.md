@@ -105,7 +105,7 @@ mkdir myMinBiasSample
 mv  MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.* myMinBiasSample/
 ```
 
-Alternatively you can use this file: `/afs/cern.ch/work/g/gauzinge/public/minBias300k.root` which uses geometry IT613.
+Alternatively you can use this file: `/afs/cern.ch/work/g/gauzinge/public/minBiasFiles/minBiasFile100k_X.root` which uses geometry IT613. There are three such files and they can be provided to the pileup input as a list.
 
 Congratulations, you are almost done! In order to use these events you have to edit a file in `mySimDir/CMSSW_10_4_0_pre2/src/Configuration/PyReleaseValidation/python/relval_steps.py`:
 the easiest is to search for the string _PUData_ in your editor. Then edit these lines:
