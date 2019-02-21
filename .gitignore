@@ -1,3 +1,5 @@
 batchlog/*
 *.pyc
 __init__.py
+*.root
+tags
