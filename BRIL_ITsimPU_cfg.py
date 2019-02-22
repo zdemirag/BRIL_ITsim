@@ -211,8 +211,8 @@ for path in process.paths:
 	getattr(process,path).insert(0, process.generator)
 
 #do not add changes to your config after this point (unless you know what you are doing)
-# from FWCore.ParameterSet.Utilities import convertToUnscheduled
-# process=convertToUnscheduled(process)
+from FWCore.ParameterSet.Utilities import convertToUnscheduled
+process=convertToUnscheduled(process)
 # Customisation from command line
 
 #Have logErrorHarvester wait for the same EDProducers to finish as those providing data for the OutputModule
