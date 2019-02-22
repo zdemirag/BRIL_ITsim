@@ -39,7 +39,7 @@ MAXBUNCH=3
 
 #make the list of minbias files and remove trailing comma
 for filename in ${PUPATH}/*.root; do
-    FILENAMES+=${FILE}/${filename},
+    FILENAMES+=${FILE}${filename},
 done
 PUFILE=${FILENAMES%,}
 
