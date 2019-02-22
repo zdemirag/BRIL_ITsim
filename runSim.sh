@@ -42,7 +42,6 @@ for filename in ${PUPATH}/*.root; do
     FILENAMES+=${FILE}/${filename},
 done
 PUFILE=${FILENAMES%,}
-echo ${PUFILE}
 
 #some sanity checks on the command line arguments
 if test -z "$PU" 
@@ -51,7 +50,7 @@ then
    return
 fi
 
-if `list_include_item "0 05 1 15 2 10 20 25 30 35 40 45 50 70 75 100 125 140 150 175 200" $PU` ; then
+if `list_include_item "0 0.5 1 1.5 2 10 20 25 30 35 40 45 50 70 75 100 125 140 150 175 200" $PU` ; then
   #echo "PU value $PU available in list"
   echo ''
 else 

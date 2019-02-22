@@ -32,7 +32,7 @@ options.register ('pileupFile',
 options.register ('pileupAverage',
                                  10,
                                  VarParsing.multiplicity.singleton,
-                                 VarParsing.varType.int,
+                                 VarParsing.varType.float,
                   "The average PU number: 10")
 options.register ('bunchSpace',
                                  25,
