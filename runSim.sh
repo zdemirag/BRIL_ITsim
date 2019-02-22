@@ -26,7 +26,8 @@ NTHREADS=10
 FILE=file:
 PUPATH=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
 
-OUTDIR=/eos/user/g/gauzinge/PUdata
+#OUTDIR=/eos/user/g/gauzinge/PUdata
+OUTDIR=/afs/cern.ch/work/c/cbarrera/private/BRIL/outputDir
 #OUTDIR=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim
 
 #additional variables for mixing module
