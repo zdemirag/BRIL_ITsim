@@ -1,4 +1,4 @@
-NEvents             = 30000
+NEvents             = 15000
 
 executable          = runMinBias.sh
 arguments           = $(NEvents) $(ProcId)
@@ -12,4 +12,4 @@ request_cpus        = 10
 
 transfer_output_files = ""
 +JobFlavour        = "testmatch"
-queue 10
+queue 20

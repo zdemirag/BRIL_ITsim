@@ -24,8 +24,7 @@ JOBID=$3
 NTHREADS=10
 
 FILE=file:
-PUPATH=${FILE}/afs/cern.ch/work/g/gauzinge/public/minBiasFiles/
-PUFILE=${PUPATH}minBiasFile100k_0.root,${PUPATH}minBiasFile100k_1.root,${PUPATH}minBiasFile100k_2.root
+PUPATH=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
 
 OUTDIR=/eos/user/g/gauzinge/PUdata
 #OUTDIR=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim
@@ -37,6 +36,13 @@ MAXBUNCH=3
 ################################################################################
 ################################################################################
 ################################################################################
+
+#make the list of minbias files and remove trailing comma
+for filename in ${PUPATH}/*.root; do
+    FILENAMES+=${FILE}/${filename},
+done
+PUFILE=${FILENAMES%,}
+echo ${PUFILE}
 
 #some sanity checks on the command line arguments
 if test -z "$PU" 
@@ -80,7 +86,7 @@ echo 'JobId: '${JOBID}
 echo 'Bunchspace: ' ${BUNCHSPACING}
 echo 'minBunch :' ${MINBUNCH}
 echo 'maxBunch : ' ${MAXBUNCH}
-echo 'PileupFile: ' ${PUFILE}
+echo 'PileupFiles: ' ${PUFILE}
 echo 'OutputDirectory: ' ${OUTDIR}
 echo 'Number of Threads: ' ${NTHREADS}
 echo '###########################################################################'

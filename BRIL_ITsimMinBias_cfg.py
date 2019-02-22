@@ -36,7 +36,7 @@ options.register ('outputDirectory',
                   "The output directory")
 
 options.parseArguments()
-options.outputFile=options.outputDirectory+'/minBias'+str(options.nEvents/1000)'k_'+str(options.jobId)+'.root'
+options.outputFile=options.outputDirectory+'/minBias'+str(options.nEvents/1000)+'k_'+str(options.jobId)+'.root'
 print("Output File: %s" % (options.outputFile))
 
 process = cms.Process('SIM',eras.Phase2)
