@@ -1,4 +1,4 @@
-PU_parameter        = 0
+PU_parameter        = 20
 NEvents             = 10000
 
 executable          = runSim.sh
