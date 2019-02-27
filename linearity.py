@@ -73,7 +73,7 @@ def getLinearityClusters(file, graphs=[]):
     return
 
 # extract the mean, sigma and pileup from the folder in the rootfile - this is where the magic happens
-def getLinearityCoincidences(file,nCoincidences, graphssum=[],graphsreal=[], graphsfake=[]):
+def getLinearityCoincidences(file,nCoincidences, graphssum=[],graphsreal=[]):
 
     pileupstring = re.findall('summary_PU_(.*).root', file)
     pileup = float(pileupstring[0])
@@ -85,45 +85,34 @@ def getLinearityCoincidences(file,nCoincidences, graphssum=[],graphsreal=[], gra
     #build the histogram names
     if nCoincidences == 2:
         histname = "Number of 2x Coincidences for Disk "
-        fakehistname = "Number of fake 2x Coincidences for Disk "
+        realhistname = "Number of real 2x Coincidences for Disk "
     elif nCoincidences == 3:
         histname = "Number of 3x Coincidences for Disk "
-        fakehistname = "Number of fake 3x Coincidences for Disk "
+        realhistname = "Number of real 3x Coincidences for Disk "
 
     #loop the disks
     for disk in range(1,5):
         histminusz = root.gDirectory.Get(histname +"-"+str(disk))
         histplusz = root.gDirectory.Get(histname+str(disk))
 
-        fakehistminusz = root.gDirectory.Get(fakehistname +"-"+str(disk))
-        fakehistplusz = root.gDirectory.Get(fakehistname +str(disk))
+        realhistminusz = root.gDirectory.Get(realhistname +"-"+str(disk))
+        realhistplusz = root.gDirectory.Get(realhistname +str(disk))
 
         #add plus and minus Z histograms
         histminusz.Add(histplusz)
-        fakehistminusz.Add(fakehistplusz)
+        realhistminusz.Add(realhistplusz)
 
-        #now add real and fake histograms
-        sumhist = histminusz.Clone()
-        sumhist.Add(fakehistminusz)
-
-
-        # print(histminusz.GetName())
-        # print(histplusz.GetName())
 
         #now loop the rings
         for ring in range(5):
-            (meansum, sigmasum) = getParams(sumhist, ring)
-            (meanreal, sigmareal) = getParams(histminusz, ring)
-            (meanfake, sigmafake) = getParams(fakehistminusz, ring)
+            (meansum, sigmasum) = getParams(histminusz, ring)
+            (meanreal, sigmareal) = getParams(realhistminusz, ring)
 
             graphssum[disk-1][ring].SetPoint(graphssum[disk-1][ring].GetN(),pileup, meansum)
             graphssum[disk-1][ring].SetPointError(graphssum[disk-1][ring].GetN()-1,0, sigmasum)
 
             graphsreal[disk-1][ring].SetPoint(graphsreal[disk-1][ring].GetN(),pileup, meanreal)
             graphsreal[disk-1][ring].SetPointError(graphsreal[disk-1][ring].GetN()-1,0, sigmareal)
-
-            graphsfake[disk-1][ring].SetPoint(graphsfake[disk-1][ring].GetN(),pileup, meanfake)
-            graphsfake[disk-1][ring].SetPointError(graphsfake[disk-1][ring].GetN()-1,0, sigmafake)
 
     rootfile.Close()
     return
@@ -227,7 +216,7 @@ if observable == "Clusters":
             graphs[i][j].Draw("ap")
 
             #fit and extrapolate
-            (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphs[i][j],10)
+            (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphs[i][j],2)
             errors[i][j].Draw("e3 same")
             extrapolated[i][j].Draw("same")
 
@@ -253,7 +242,6 @@ if observable == "Clusters":
 else:
     nCoincidences = int(observable[0])
     print("Working on", nCoincidences,"Coincidences")
-    graphsfake = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
     graphsreal = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
     graphssum = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
     extrapolated = [[root.TF1() for j in range(rings)] for i in range(disks)]
@@ -263,7 +251,7 @@ else:
         if file.find(".root"):
             filename = path+file
             #fill the actual graph for all available PU steps
-            getLinearityCoincidences(filename,nCoincidences,graphssum, graphsreal, graphsfake)
+            getLinearityCoincidences(filename,nCoincidences,graphssum, graphsreal)
         else:
             print("Not a root file, skipping")
             continue
@@ -276,21 +264,17 @@ else:
             #Cosmetics
             graphssum[i][j].SetLineColor(4)
             graphsreal[i][j].SetLineColor(8)
-            graphsfake[i][j].SetLineColor(46)
             graphssum[i][j].SetMarkerColor(4)
             graphsreal[i][j].SetMarkerColor(8)
-            graphsfake[i][j].SetMarkerColor(46)
             graphssum[i][j].SetMarkerStyle(8)
             graphsreal[i][j].SetMarkerStyle(8)
-            graphsfake[i][j].SetMarkerStyle(8)
             graphssum[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;# of "+observable+" Coincidences")
             c_canvas.cd(index)
             graphssum[i][j].Draw("ap")
             graphsreal[i][j].Draw("p same")
-            graphsfake[i][j].Draw("p same")
 
             #fit and extrapolate
-            (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphssum[i][j],10)
+            (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphssum[i][j],2)
             errors[i][j].Draw("e3 same")
             extrapolated[i][j].Draw("same")
 
@@ -303,7 +287,6 @@ else:
             savecanvas.cd()
             graphssum[i][j].Draw("ap")
             graphsreal[i][j].Draw("p same")
-            graphsfake[i][j].Draw("p same")
             errors[i][j].Draw("e3 same")
             extrapolated[i][j].Draw("same")
             savecanvas.Write(observable+"Coincidences Disk"+str(i+1)+"Ring"+str(j+1))

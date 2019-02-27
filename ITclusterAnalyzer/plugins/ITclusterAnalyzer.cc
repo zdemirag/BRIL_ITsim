@@ -123,19 +123,19 @@ private:
     TH2F* m_trackerLayoutClustersYX;
 
     //array of TH2F for 2xcoinc per disk per ring
-    //first the true ones
+    //first all coincidences
     TH2F* m_diskHistos2x[8];
-    //and the fake ones
-    TH2F* m_diskHistos2xfake[8];
+    //and the real ones
+    TH2F* m_diskHistos2xreal[8];
     //tracker maps for 2xcoinc
     TH2F* m_trackerLayout2xZR;
     TH2F* m_trackerLayout2xYX;
 
     //array of TH2F for 3xcoinc per disk per ring
-    //first the true ones
+    //first all coincidences
     TH2F* m_diskHistos3x[8];
-    //and the fake ones
-    TH2F* m_diskHistos3xfake[8];
+    //and the real ones
+    TH2F* m_diskHistos3xreal[8];
     //tracker maps for 2xcoinc
     TH2F* m_trackerLayout3xZR;
     TH2F* m_trackerLayout3xYX;
@@ -247,12 +247,12 @@ void ITclusterAnalyzer::beginJob()
             //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos2x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
-            std::stringstream histonamefake;
-            histonamefake << "Number of fake 2x Coincidences for Disk " << disk << ";Ring;# of fake coincidences per event";
-            std::stringstream histotitlefake;
-            histotitlefake << "Number of fake 2x Coincidences for Disk " << disk;
+            std::stringstream histonamereal;
+            histonamereal << "Number of real 2x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
+            std::stringstream histotitlereal;
+            histotitlereal << "Number of real 2x Coincidences for Disk " << disk;
             //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-            m_diskHistos2xfake[i] = td.make<TH2F>(histotitlefake.str().c_str(), histonamefake.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+            m_diskHistos2xreal[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
         m_trackerLayout2xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
         m_trackerLayout2xYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
@@ -271,12 +271,12 @@ void ITclusterAnalyzer::beginJob()
             //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos3x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
-            std::stringstream histonamefake;
-            histonamefake << "Number of fake 3x Coincidences for Disk " << disk << ";Ring;# of fake coincidences per event";
-            std::stringstream histotitlefake;
-            histotitlefake << "Number of fake 3x Coincidences for Disk " << disk;
+            std::stringstream histonamereal;
+            histonamereal << "Number of real 3x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
+            std::stringstream histotitlereal;
+            histotitlereal << "Number of real 3x Coincidences for Disk " << disk;
             //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-            m_diskHistos3xfake[i] = td.make<TH2F>(histotitlefake.str().c_str(), histonamefake.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+            m_diskHistos3xreal[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
         m_trackerLayout3xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
         m_trackerLayout3xYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
@@ -315,13 +315,13 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
     //counter for 2x coincidences
     unsigned int x2Counter[8][5];
     memset(x2Counter, 0, sizeof(x2Counter));
-    unsigned int x2Counterfake[8][5];
-    memset(x2Counterfake, 0, sizeof(x2Counterfake));
+    unsigned int x2Counterreal[8][5];
+    memset(x2Counterreal, 0, sizeof(x2Counterreal));
 
     unsigned int x3Counter[8][5];
     memset(x3Counter, 0, sizeof(x3Counter));
-    unsigned int x3Counterfake[8][5];
-    memset(x3Counterfake, 0, sizeof(x3Counterfake));
+    unsigned int x3Counterreal[8][5];
+    memset(x3Counterreal, 0, sizeof(x3Counterreal));
 
     //loop the modules in the cluster collection
     for (typename edmNew::DetSetVector<SiPixelCluster>::const_iterator DSVit = clusters->begin(); DSVit != clusters->end(); DSVit++) {
@@ -388,6 +388,7 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 bool found = this->findCoincidence2x(detId, globalPosClu, coincidenceId, coincidenceCluster);
                 if (found) {
                     m_total2xcoincidences++;
+                    x2Counter[hist_id][ring_id]++;
                     //I have found a coincidence hit, so now I need to check the sim Track ID of each of the two clusters
                     //so first, let's get the simTrackID of the original cluster-for this I need to loop over all pixels
                     //and check if multiple SimTracks have caused it
@@ -403,12 +404,10 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
                     std::set<unsigned int> intersection;
                     bool areSame = areSameSimTrackId(simTrackId, coincidencesimTrackId, intersection);
 
-                    if (areSame)
-                        x2Counter[hist_id][ring_id]++;
-                    else {
-                        x2Counterfake[hist_id][ring_id]++;
+                    if (areSame) {
+                        x2Counterreal[hist_id][ring_id]++;
+                    } else
                         m_fake2xcoincidences++;
-                    }
 
                     m_trackerLayout2xZR->Fill(globalPosClu.z(), globalPosClu.perp());
                     m_trackerLayout2xYX->Fill(globalPosClu.x(), globalPosClu.y());
@@ -420,11 +419,9 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
                     edmNew::DetSet<SiPixelCluster>::const_iterator coincidenceCluster3x;
                     found = this->findCoincidence3x(detId, globalPosClu, coincidenceId3x, coincidenceCluster3x);
                     if (found) {
-                        //std::cout << "2x coincidence track ID: ";
-                        //for (auto it : intersection)
-                        //std::cout << it;
-                        //std::cout << std::endl;
                         m_total3xcoincidences++;
+                        x3Counter[hist_id][ring_id]++;
+
                         //now get the simlink detset based on the coincidence hit detid
                         edm::DetSetVector<PixelDigiSimLink>::const_iterator simLinkDSViter3x = findSimLinkDetSet(coincidenceId3x);
                         std::set<unsigned int> coincidencesimTrackId3x = this->getSimTrackId(simLinkDSViter3x, coincidenceCluster3x, false);
@@ -440,10 +437,9 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
                         //std::cout << std::endl;
 
                         if (areSame)
-                            x3Counter[hist_id][ring_id]++;
+                            x3Counterreal[hist_id][ring_id]++;
                         else {
                             m_fake3xcoincidences++;
-                            x3Counterfake[hist_id][ring_id]++;
                         }
 
                         m_trackerLayout3xZR->Fill(globalPosClu.z(), globalPosClu.perp());
@@ -462,9 +458,9 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
             m_diskHistosCluster[i]->Fill(j + 1, cluCounter[i][j]);
             if (m_docoincidence) {
                 m_diskHistos2x[i]->Fill(j + 1, x2Counter[i][j]);
-                m_diskHistos2xfake[i]->Fill(j + 1, x2Counterfake[i][j]);
+                m_diskHistos2xreal[i]->Fill(j + 1, x2Counterreal[i][j]);
                 m_diskHistos3x[i]->Fill(j + 1, x3Counter[i][j]);
-                m_diskHistos3xfake[i]->Fill(j + 1, x3Counterfake[i][j]);
+                m_diskHistos3xreal[i]->Fill(j + 1, x3Counterreal[i][j]);
             }
         }
     }
