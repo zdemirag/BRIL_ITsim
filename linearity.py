@@ -43,29 +43,23 @@ def getParams(hist, ring):
     print("Ring",ring," wiht mean",mean,"RMS",sigma)
     return (mean,sigma)
 
+#get the linearity graph for clusters
+def getLinearityClusters(file, graphs=[]):
 
-# extract the mean, sigma and pileup from the folder in the rootfile - this is where the magic happens
-def fillLinearityGraph(file,observable, graphs=[]):
-    pileup = int(filter(str.isdigit, file))
-    print("Found a root file for pileup", pileup, "in file", file, "Objects:",observable)
+    pileupstring = re.findall('summary_PU_(.*).root', file)
+    pileup = float(pileupstring[0])
+    print("Found a root file for pileup", pileup, "in file", file, "Objects: Clusters")
 
     rootfile = root.TFile.Open(file)
-    rootfile.cd('BRIL_IT_Analysis/'+observable)
+    rootfile.cd('BRIL_IT_Analysis/Clusters')
 
     #build the histogram names
-    if observable == "Clusters":
-        histname = "Number of clusters for Disk "
-    elif observable == "2xCoincidences":
-        histname = "Number of 2x Coincidences for Disk "
-    elif observable == "3xCoincidences":
-        histname = "Number of 3x Coincidences for Disk "
+    histname = "Number of clusters for Disk "
 
     #loop the disks
     for disk in range(1,5):
         histminusz = root.gDirectory.Get(histname +"-"+str(disk))
         histplusz = root.gDirectory.Get(histname+str(disk))
-        # print(histminusz.GetName())
-        # print(histplusz.GetName())
         #add plus and minus Z histograms
         histminusz.Add(histplusz)
 
@@ -78,50 +72,63 @@ def fillLinearityGraph(file,observable, graphs=[]):
     rootfile.Close()
     return
 
-def extrapolateLinearDumb(graph, basis=1):
-    #or fit with TF1, get confidence interval 1Sigma
-    #first, fit a linear fit with parameter 1 fixed to 0 (no intercept so it passes (0,0))
-    pol1 = root.TF1("pol1",
-                   "[0]*x",0,basis)
-    # pol1.FixParameter(1,0)
-    graph.Fit("pol1","R")
-    par0 = pol1.GetParameter(0)
-    extrapolated= root.TF1("extra","[0]*x",0,200)
-    extrapolated.SetParameter(0,par0)
-    extrapolated.SetLineColor(6)
+# extract the mean, sigma and pileup from the folder in the rootfile - this is where the magic happens
+def getLinearityCoincidences(file,nCoincidences, graphssum=[],graphsreal=[]):
 
-    #now manually extrapolate PU1 min/max error to PU 200 and set TGraph Errrors
-    x=root.Double(0)
-    y=root.Double(0)
-    for point in range(graph.GetN()):
-        graph.GetPoint(point,x,y)
-        if x == basis:
-            Pu1error = graph.GetErrorY(point)
-            slope = y/x
-            slopehigh = (y+Pu1error)/x
-            slopelow = (y-Pu1error)/x
-            # print("Point 1 x:",x,"y:",y,"error:",Pu1error,"Slope:",slope,"high:",slopehigh,"low:",slopelow)
-    #draw the extrapolation
-    errors = root.TGraphAsymmErrors()
-    errors.SetFillColor(6)
-    errors.SetFillStyle(3003)
-    #point (0,0)
-    errors.SetPoint(0,0,0)
-    errors.SetPointError(0,0,0,0,0)
-    errors.SetPoint(1,200,200*slope)
-    errors.SetPointError(1,0,0,200*slope-200*slopelow,200*slopehigh-200*slope)
-    return(extrapolated,errors)
+    pileupstring = re.findall('summary_PU_(.*).root', file)
+    pileup = float(pileupstring[0])
+    print("Found a root file for pileup", pileup, "in file", file, "Objects:",nCoincidences,"Coincidences")
+
+    rootfile = root.TFile.Open(file)
+    rootfile.cd('BRIL_IT_Analysis/'+str(nCoincidences)+'xCoincidences')
+
+    #build the histogram names
+    if nCoincidences == 2:
+        histname = "Number of 2x Coincidences for Disk "
+        realhistname = "Number of real 2x Coincidences for Disk "
+    elif nCoincidences == 3:
+        histname = "Number of 3x Coincidences for Disk "
+        realhistname = "Number of real 3x Coincidences for Disk "
+
+    #loop the disks
+    for disk in range(1,5):
+        histminusz = root.gDirectory.Get(histname +"-"+str(disk))
+        histplusz = root.gDirectory.Get(histname+str(disk))
+
+        realhistminusz = root.gDirectory.Get(realhistname +"-"+str(disk))
+        realhistplusz = root.gDirectory.Get(realhistname +str(disk))
+
+        #add plus and minus Z histograms
+        histminusz.Add(histplusz)
+        realhistminusz.Add(realhistplusz)
+
+
+        #now loop the rings
+        for ring in range(5):
+            (meansum, sigmasum) = getParams(histminusz, ring)
+            (meanreal, sigmareal) = getParams(realhistminusz, ring)
+
+            graphssum[disk-1][ring].SetPoint(graphssum[disk-1][ring].GetN(),pileup, meansum)
+            graphssum[disk-1][ring].SetPointError(graphssum[disk-1][ring].GetN()-1,0, sigmasum)
+
+            graphsreal[disk-1][ring].SetPoint(graphsreal[disk-1][ring].GetN(),pileup, meanreal)
+            graphsreal[disk-1][ring].SetPointError(graphsreal[disk-1][ring].GetN()-1,0, sigmareal)
+
+    rootfile.Close()
+    return
 
 def extrapolateLinear(graph, basis=1):
     graph.Sort()
     #fit up to desired range, default is PU1
     pol1 = root.TF1("pol1",
-                   "[0]*x",0,basis)
+                   "[0]*x+[1]",0,basis)
     graph.Fit("pol1","R")
     #draw the fit extrapolated to 200
     par0 = pol1.GetParameter(0)
-    extrapolated = root.TF1("extra","[0]*x",0,200)
+    par1 = pol1.GetParameter(1)
+    extrapolated = root.TF1("extra","[0]*x+[1]",0,200)
     extrapolated.SetParameter(0,par0)
+    extrapolated.SetParameter(1,par1)
     extrapolated.SetLineColor(6)
 
     #draw a TGRaphErrors with the 1sigma confidence interval
@@ -159,121 +166,136 @@ def relativeNonlinearity(graph, fit):
 # def main():
 disks,rings = 4,5
 args = len(sys.argv)
-if args>1:
+if args==3:
     path = sys.argv[1]
-    print(path)
+    observable = sys.argv[2]
 else:
+    print("Error, call with command line arguments: [1] path and [2] observable; the options for the latter are Clusters or 2x or 3x")
     path = "/afs/cern.ch/user/g/gauzinge/ITsim/mySummaryPlots/"
+    observable ="Clusters"
+    print("default values are:")
+    print(path)
+    print(observable)
 
+print("Filepath", path, "Observable:",observable)
 #now get the files in the path
 files = os.listdir(path)
+files = [item for item in files if not (item.find("summary") and (item.find(".root")))]
 files.sort()
+print(files)
+
+# a TCanvas
+c_canvas = root.TCanvas("Summary","Summary")
+c_canvas.Divide(5,4)
 
 # a 2D array of TGraph Errors
 #first index is disk and second is ring
-graphs = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
-extrapolated = [[root.TF1() for j in range(rings)] for i in range(disks)]
-errors = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
-graphs2x = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
-extrapolated2x = [[root.TF1() for j in range(rings)] for i in range(disks)]
-errors2x = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
-graphs3x = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
-extrapolated3x = [[root.TF1() for j in range(rings)] for i in range(disks)]
-errors3x = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
+#first, let's only deal with the case for Clusters
+if observable == "Clusters":
+    graphs = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
+    extrapolated = [[root.TF1() for j in range(rings)] for i in range(disks)]
+    errors = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
 
-# a TCanvas
-c_clusters = root.TCanvas("Cluster Summary","Cluster Summary")
-c_2x = root.TCanvas("2x Summary","2x Summary")
-c_3x = root.TCanvas("3x Summary","3x Summary")
-c_clusters.Divide(5,4)
-c_2x.Divide(5,4)
-c_3x.Divide(5,4)
+    for file in files:
+        if file.find(".root"):
+            filename = path+file
+            #fill the actual graph for all available PU steps
+            getLinearityClusters(filename,graphs)
+        else:
+            print("Not a root file, skipping")
+            continue
 
-#loop all root files
-for file in files:
-    if file.find(".root"):
-        filename = path+file
-        fillLinearityGraph(filename,"Clusters",graphs)
-        fillLinearityGraph(filename, "2xCoincidences",graphs2x)
-        fillLinearityGraph(filename, "3xCoincidences",graphs3x)
+    rootfile = root.TFile("Results.root","UPDATE")
+    index = 1
+    for i in range(disks):
+        for j in range(rings):
+            #Cosmetics
+            graphs[i][j].SetLineColor(1)
+            graphs[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;# of Clusters")
+            c_canvas.cd(index)
+            graphs[i][j].Draw("ap")
+
+            #fit and extrapolate
+            (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphs[i][j],2)
+            errors[i][j].Draw("e3 same")
+            extrapolated[i][j].Draw("same")
+
+            #calculate relative nonlinearity
+            deviation = relativeNonlinearity(graphs[i][j], extrapolated[i][j])
+            deviation.Write("Deviation Clusters Disk"+str(i+1)+"Ring"+str(j+1))
+
+            #save canvases for the individual disk/ring combos
+            savecanvas = root.TCanvas("Clusters Disk"+str(i+1)+"Ring"+str(j+1),"Clusters Disk"+str(i+1)+"Ring"+str(j+1))
+            savecanvas.cd()
+            graphs[i][j].Draw("ap")
+            errors[i][j].Draw("e3 same")
+            extrapolated[i][j].Draw("same")
+            savecanvas.Write("Clusters Disk"+str(i+1)+"Ring"+str(j+1))
+            index = index+1
+
+    #Write out the summary as well
+    c_canvas.Write("SummarClusters")
+    rootfile.Close()
 
 
-rootfile = root.TFile("Results.root","RECREATE")
+#for 2 and 3x coincidences
+else:
+    nCoincidences = int(observable[0])
+    print("Working on", nCoincidences,"Coincidences")
+    graphsreal = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
+    graphssum = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
+    extrapolated = [[root.TF1() for j in range(rings)] for i in range(disks)]
+    errors = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
 
+    for file in files:
+        if file.find(".root"):
+            filename = path+file
+            #fill the actual graph for all available PU steps
+            getLinearityCoincidences(filename,nCoincidences,graphssum, graphsreal)
+        else:
+            print("Not a root file, skipping")
+            continue
 
-index = 1
-for i in range(disks):
-    for j in range(rings):
-        #do all the graphic stuff
-        graphs[i][j].SetLineColor(1)
-        graphs2x[i][j].SetLineColor(2)
-        graphs3x[i][j].SetLineColor(4)
-        graphs[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;# of Clusters")
-        graphs2x[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;# of 2x Coincidences")
-        graphs3x[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;# of 3x Coincidences")
+    rootfile = root.TFile("Results.root","UPDATE")
+    index = 1
+    for i in range(disks):
+        for j in range(rings):
 
-        # draw the actual graphs
-        c_clusters.cd(index)
-        graphs[i][j].Draw("ap")
-        (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphs[i][j],10)
-        errors[i][j].Draw("e3 same")
-        extrapolated[i][j].Draw("same")
+            #Cosmetics
+            graphssum[i][j].SetLineColor(4)
+            graphsreal[i][j].SetLineColor(8)
+            graphssum[i][j].SetMarkerColor(4)
+            graphsreal[i][j].SetMarkerColor(8)
+            graphssum[i][j].SetMarkerStyle(8)
+            graphsreal[i][j].SetMarkerStyle(8)
+            graphssum[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;# of "+observable+" Coincidences")
+            c_canvas.cd(index)
+            graphssum[i][j].Draw("ap")
+            graphsreal[i][j].Draw("p same")
 
-        # testcanvas = root.TCanvas("test","test")
-        # testcanvas.cd()
-        deviation = relativeNonlinearity(graphs[i][j], extrapolated[i][j])
-        deviation.Write("Deviation Disk"+str(i+1)+"Ring"+str(j+1))
-        # deviation.Draw("ap")
-        # deviation.GetYaxis().SetRangeUser(-10,10)
-        # deviation.Draw("ap")
+            #fit and extrapolate
+            (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphssum[i][j],2)
+            errors[i][j].Draw("e3 same")
+            extrapolated[i][j].Draw("same")
 
-        savecanvas = root.TCanvas("Clusters Disk"+str(i+1)+"Ring"+str(j+1),"Clusters Disk"+str(i+1)+"Ring"+str(j+1))
-        savecanvas.cd()
-        graphs[i][j].Draw("ap")
-        # (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphs[i][j],10)
-        errors[i][j].Draw("e3 same")
-        extrapolated[i][j].Draw("same")
-        savecanvas.Write("Clusters Disk"+str(i+1)+"Ring"+str(j+1))
+            #calculate relative nonlinearity
+            deviation = relativeNonlinearity(graphssum[i][j], extrapolated[i][j])
+            deviation.Write("Deviation "+observable+" Disk"+str(i+1)+"Ring"+str(j+1))
 
-        c_2x.cd(index)
-        graphs2x[i][j].Draw("ap")
-        (extrapolated2x[i][j],errors2x[i][j]) = extrapolateLinear(graphs2x[i][j],20)
-        # errors2x[i][j].Draw("e3 same")
-        extrapolated2x[i][j].Draw("same")
-        deviation2x = relativeNonlinearity(graphs2x[i][j], extrapolated[i][j])
-        deviation2x.Write("Deviation2x Disk"+str(i+1)+"Ring"+str(j+1))
+            #save canvases for the individual disk/ring combos
+            savecanvas = root.TCanvas(observable+"Coincidences Disk"+str(i+1)+"Ring"+str(j+1),observable+"Coincidences Disk"+str(i+1)+"Ring"+str(j+1))
+            savecanvas.cd()
+            graphssum[i][j].Draw("ap")
+            graphsreal[i][j].Draw("p same")
+            errors[i][j].Draw("e3 same")
+            extrapolated[i][j].Draw("same")
+            savecanvas.Write(observable+"Coincidences Disk"+str(i+1)+"Ring"+str(j+1))
+            index = index+1
 
-        # savecanvas = root.TCanvas("2x Disk"+str(i+1)+"Ring"+str(j+1),"2x Disk"+str(i+1)+"Ring"+str(j+1))
-        savecanvas.cd()
-        graphs2x[i][j].Draw("ap")
-        # (extrapolated2x[i][j],errors[i][j]) = extrapolateLinear(graphs2x[i][j],20)
-        # errors2x[i][j].Draw("e3 same")
-        extrapolated2x[i][j].Draw("same")
-        savecanvas.Write("2x Disk"+str(i+1)+"Ring"+str(j+1))
+    #Write out the summary as well
+    c_canvas.Write("SummarClusters")
+    rootfile.Close()
 
-        c_3x.cd(index)
-        graphs3x[i][j].Draw("ap")
-        # (extrapolated3x[i][j],errors3x[i][j]) = extrapolateLinear(graphs3x[i][j],200)
-        # errors2x[i][j].Draw("e3 same")
-        # extrapolated2x[i][j].Draw("same")
-
-        # savecanvas = root.TCanvas("3x Disk"+str(i+1)+"Ring"+str(j+1),"3x Disk"+str(i+1)+"Ring"+str(j+1))
-        savecanvas.cd()
-        graphs3x[i][j].Draw("ap")
-        # # (extrapolated2x[i][j],errors[i][j]) = extrapolateLinear(graphs[i][j],10)
-        # # errors2x[i][j].Draw("e3 same")
-        # extrapolated3x[i][j].Draw("same")
-        savecanvas.Write("3x Disk"+str(i+1)+"Ring"+str(j+1))
-
-        #draw the extrapolation
-        index = index+1
-
-# c.SaveAs("linearity.pdf")
-c_clusters.Write("SummarClusters")
-c_2x.Write("Summar2x")
-c_3x.Write("Summar3x")
-
-rootfile.Close()
 
 # if __name__ == '__main__':
         # main()

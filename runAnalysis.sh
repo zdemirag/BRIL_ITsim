@@ -2,42 +2,52 @@
 
 PUIN=$1
 DATAPATH=/eos/user/g/gauzinge/PUdata/
+declare -a list=("0.0" "0.5" "1.0" "1.5" "2.0")
 
-echo "running BRIL IT Cluster analysis"
 eval $(scramv1 runtime -sh) || echo "The command 'cmsenv' failed!"
 
-for filename in ${DATAPATH}*.root; do
-    #get the Proc ID
-    hasDec=$(echo $PUIN | grep ".")
-    PUINint=$(echo $PUIN | cut -d'.' -f 1)
-    #echo $PUIN
-    if [[ `expr index "$PUIN" \.` -gt 0 ]]; then
-        PUINdec=$(echo $PUIN | cut -d'.' -f 2)
-    else 
-        PUINdec=0
-    fi
-    #echo `expr index "$PUIN" \.`
-    #echo ${PUINint} ${PUINdec}
-    TAG=$(echo ${filename} | cut -d'.' -f 2)
-    tmp=$(echo ${filename} | cut -d'_' -f 4)
-    PU=$(echo ${tmp} | cut -d'.' -f 1)
-    dec=$(echo ${tmp} | cut -d'.' -f 2)
-    #echo ${PU} ${dec}
-    if [[ ${PUINint} -eq ${PU} && ${PUINdec} -eq ${dec} ]]; then
-        echo "Processing for PU ${PUIN}. File: ${filename} matches the criteria!"
-        cmsRun ITclusterAnalyzer/python/ITclusterAnalyzer_cfg.py print \
-            inputFiles=file:${filename} \
-            outputFile=summary.root \
-            tag=${TAG}
-    else
-        echo "Processing for PU ${PUIN}. Skipping file: ${filename}."
-    fi
-done
+function runAnalysis() {
+    local DATAPATH=$1
+    local PUIN=$2
+    echo '####################################################################'
+    echo "running BRIL IT Cluster analysis"
+    echo 'Picking up data files with PU ' ${PUIN} ' from directory: ' ${DATAPATH}
+    echo '####################################################################'
+    echo 'Processing files:'
+    for filename in ${DATAPATH}*.root; do
+        #get the Proc ID
+        TAG=$(echo ${filename} | cut -d'.' -f 3)
+        tmp=$(echo ${filename} | cut -d'_' -f 4)
+        MAIN=$(echo ${tmp} | cut -d'.' -f 1)
+        DECIMAL=$(echo ${filename} | cut -d'.' -f 2)
+        PU=${MAIN}.${DECIMAL}
+        #if [[ "$PUIN" -eq "$PU" ]]; then
+        if [ "$PUIN" = "$PU" ]; then
+        echo ${filename} 'with PU ' ${PU}
+            cmsRun ITclusterAnalyzer/python/ITclusterAnalyzer_cfg.py print \
+                inputFiles=file:${filename} \
+                outputFile=temp.root \
+                tag=${TAG}
+        fi
+    done
+    
+    echo "Now merging output histograms"
+    command="hadd summary_PU_${PUIN}.root"
+    for rootfile in ${PWD}/temp_?.root; do
+        command+=" ${rootfile}"
+    done
+    echo $command
+    ${command}
+}
 
-echo "Now merging output histograms"
-command="hadd summary_PU${PUIN}.root"
-for rootfile in ${PWD}/*.root; do
-    command+=" ${rootfile}"
-done
-echo $command
-${command}
+if test -z "$PUIN" 
+then
+   echo "No Pileup number specified - please run as source runAnalysis.sh PU"
+   for i in "${list[@]}"
+   do
+       runAnalysis ${DATAPATH} ${i}
+   done
+else
+    runAnalysis ${DATAPATH} ${PUIN}
+fi
+
