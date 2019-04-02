@@ -10,8 +10,9 @@ log                 = batchlog/runSim.$(ClusterId).log
 transfer_input_files    = sandbox.tar.bz2, BRIL_ITsimPU_cfg.py
 #getenv              = True
 request_cpus        = 10
+requirements = (OpSysAndVer =?= "SLCern6")
 
 
 transfer_output_files = ""
-+JobFlavour        = "testmatch"
++JobFlavour        = "nextweek"
 queue 
