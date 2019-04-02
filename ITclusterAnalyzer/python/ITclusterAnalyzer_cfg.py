@@ -28,7 +28,7 @@ process.MessageLogger.categories.append('ITclusterAnalyzer')
 process.MessageLogger.cerr.INFO = cms.untracked.PSet(
     limit=cms.untracked.int32(-1)
 )
-process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(10)
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(100)
 
 process.options = cms.untracked.PSet(wantSummary=cms.untracked.bool(False)
                                     # ,SkipEvent = cms.untracked.vstring('ProductNotFound')

@@ -582,8 +582,10 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
 void ITclusterAnalyzer::endJob()
 {
     std::cout << "IT cluster Analyzer processed " << m_nevents << " events!" << std::endl;
-    std::cout << "IT cluster Analyzer found " << m_fake2xcoincidences / (double)m_total2xcoincidences * 100 << "\% fake double coincidences." << std::endl;
-    std::cout << "IT cluster Analyzer found " << m_fake3xcoincidences / (double)m_total3xcoincidences * 100 << "\% fake triple coincidences." << std::endl;
+    if (m_docoincidence) {
+        std::cout << "IT cluster Analyzer found " << m_fake2xcoincidences / (double)m_total2xcoincidences * 100 << "\% fake double coincidences." << std::endl;
+        std::cout << "IT cluster Analyzer found " << m_fake3xcoincidences / (double)m_total3xcoincidences * 100 << "\% fake triple coincidences." << std::endl;
+    }
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
