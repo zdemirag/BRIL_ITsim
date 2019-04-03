@@ -72,6 +72,35 @@ def getLinearityClusters(file, graphs=[]):
     rootfile.Close()
     return
 
+#get the linearity graph for hits
+def getLinearityHits(file, graphs=[]):
+
+    pileupstring = re.findall('summary_PU_(.*).root', file)
+    pileup = float(pileupstring[0])
+    print("Found a root file for pileup", pileup, "in file", file, "Objects: Hits")
+
+    rootfile = root.TFile.Open(file)
+    rootfile.cd('BRIL_IT_Analysis/Hits')
+
+    #build the histogram names
+    histname = "Number of hits for Disk "
+
+    #loop the disks
+    for disk in range(1,5):
+        histminusz = root.gDirectory.Get(histname +"-"+str(disk))
+        histplusz = root.gDirectory.Get(histname+str(disk))
+        #add plus and minus Z histograms
+        histminusz.Add(histplusz)
+
+        #now loop the rings
+        for ring in range(5):
+            (mean, sigma) = getParams(histminusz, ring)
+            graphs[disk-1][ring].SetPoint(graphs[disk-1][ring].GetN(),pileup, mean)
+            graphs[disk-1][ring].SetPointError(graphs[disk-1][ring].GetN()-1,0, sigma)
+
+    rootfile.Close()
+    return
+
 # extract the mean, sigma and pileup from the folder in the rootfile - this is where the magic happens
 def getLinearityCoincidences(file,nCoincidences, graphssum=[],graphsreal=[]):
 
@@ -126,7 +155,7 @@ def extrapolateLinear(graph, basis=1):
     #draw the fit extrapolated to 200
     par0 = pol1.GetParameter(0)
     par1 = pol1.GetParameter(1)
-    extrapolated = root.TF1("extra","[0]*x+[1]",0,200)
+    extrapolated = root.TF1("extra","[0]*x+[1]",0,50)
     extrapolated.SetParameter(0,par0)
     extrapolated.SetParameter(1,par1)
     extrapolated.SetLineColor(6)
@@ -135,7 +164,7 @@ def extrapolateLinear(graph, basis=1):
     errors = root.TGraphErrors()
     for point in range(graph.GetN()):
         errors.SetPoint(point,graph.GetX()[point],0)
-        # print("x:",graph.GetX()[point],"point:",point)
+        #print("x:",graph.GetX()[point],"point:",point)
 
     root.TVirtualFitter.GetFitter().GetConfidenceIntervals(errors,0.95)
     errors.SetFillColor(6)
@@ -205,7 +234,7 @@ if observable == "Clusters":
             print("Not a root file, skipping")
             continue
 
-    rootfile = root.TFile("Results.root","UPDATE")
+    rootfile = root.TFile("Results_Clusters.root","RECREATE")
     index = 1
     for i in range(disks):
         for j in range(rings):
@@ -234,9 +263,55 @@ if observable == "Clusters":
             index = index+1
 
     #Write out the summary as well
-    c_canvas.Write("SummarClusters")
+    c_canvas.Write("SummaryClusters")
     rootfile.Close()
 
+#second, let's only deal with the case for Hits
+elif observable == "Hits":
+    graphs = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
+    extrapolated = [[root.TF1() for j in range(rings)] for i in range(disks)]
+    errors = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
+
+    for file in files:
+        if file.find(".root"):
+            filename = path+file
+            #fill the actual graph for all available PU steps
+            getLinearityHits(filename,graphs)
+        else:
+            print("Not a root file, skipping")
+            continue
+
+    rootfile = root.TFile("Results_Hits.root","RECREATE")
+    index = 1
+    for i in range(disks):
+        for j in range(rings):
+            #Cosmetics
+            graphs[i][j].SetLineColor(1)
+            graphs[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;# of Hits")
+            c_canvas.cd(index)
+            graphs[i][j].Draw("ap")
+
+            #fit and extrapolate
+            (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphs[i][j],2)
+            errors[i][j].Draw("e3 same")
+            extrapolated[i][j].Draw("same")
+
+            #calculate relative nonlinearity
+            deviation = relativeNonlinearity(graphs[i][j], extrapolated[i][j])
+            deviation.Write("Deviation Hits Disk"+str(i+1)+"Ring"+str(j+1))
+
+            #save canvases for the individual disk/ring combos
+            savecanvas = root.TCanvas("Hits Disk"+str(i+1)+"Ring"+str(j+1),"Hits Disk"+str(i+1)+"Ring"+str(j+1))
+            savecanvas.cd()
+            graphs[i][j].Draw("ap")
+            errors[i][j].Draw("e3 same")
+            extrapolated[i][j].Draw("same")
+            savecanvas.Write("Hits Disk"+str(i+1)+"Ring"+str(j+1))
+            index = index+1
+
+    #Write out the summary as well
+    c_canvas.Write("SummaryHits")
+    rootfile.Close()
 
 #for 2 and 3x coincidences
 else:
@@ -293,7 +368,7 @@ else:
             index = index+1
 
     #Write out the summary as well
-    c_canvas.Write("SummarClusters")
+    c_canvas.Write("SummaryClusters")
     rootfile.Close()
 
 
