@@ -68,7 +68,7 @@ process.load('SimGeneral.MixingModule.mix_POISSON_average_cfi')
 process.load('Configuration.Geometry.GeometryExtended2023D21Reco_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.Digi_cff')
-# process.load('Configuration.StandardSequences.SimL1Emulator_cff')
+process.load('Configuration.StandardSequences.SimL1Emulator_cff')
 process.load('Configuration.StandardSequences.DigiToRaw_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
@@ -144,13 +144,13 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 
 # Path and EndPath definitions
 process.digitisation_step = cms.Path(process.pdigi_valid)
-# process.L1simulation_step = cms.Path(process.SimL1Emulator)
+process.L1simulation_step = cms.Path(process.SimL1Emulator)
 process.digi2raw_step = cms.Path(process.DigiToRaw)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 process.FEVTDEBUGoutput_step = cms.EndPath(process.FEVTDEBUGoutput)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.digitisation_step,process.digi2raw_step,process.endjob_step,process.FEVTDEBUGoutput_step)
+process.schedule = cms.Schedule(process.digitisation_step,process.L1simulation_step,process.digi2raw_step,process.endjob_step,process.FEVTDEBUGoutput_step)
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 
