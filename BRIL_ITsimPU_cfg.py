@@ -204,7 +204,7 @@ associatePatAlgosToolsTask(process)
 
 #Setup FWK for multithreaded
 process.options.numberOfThreads=cms.untracked.uint32(options.nThreads)
-process.options.numberOfStreams=cms.untracked.uint32(0)
+process.options.numberOfStreams=cms.untracked.uint32(options.nThreads)
 
 # filter all path with the production filter sequence
 for path in process.paths:
