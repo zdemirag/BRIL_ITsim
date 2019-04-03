@@ -103,6 +103,7 @@ private:
     // ----------member data ---------------------------
     edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> m_tokenClusters;
     edm::EDGetTokenT<edm::DetSetVector<PixelDigiSimLink>> m_tokenSimLinks;
+    edm::EDGetTokenT<edm::DetSetVector<PixelDigi>> m_tokenDigis;
 
     // the pointers to geometry, topology and clusters
     // these are members so all functions can access them without passing as argument
@@ -110,6 +111,7 @@ private:
     const TrackerGeometry* tkGeom = NULL;
     const edmNew::DetSetVector<SiPixelCluster>* clusters = NULL;
     const edm::DetSetVector<PixelDigiSimLink>* simlinks = NULL;
+    const edm::DetSetVector<PixelDigi>* digis = NULL;  //defining pointer to digis - COB 26.02.19
 
     //max bins of Counting histogram
     uint32_t m_maxBin;
@@ -118,9 +120,15 @@ private:
 
     //array of TH2F for clusters per disk per ring
     TH2F* m_diskHistosCluster[8];
+    //array of TH2F for hits per disk per ring
+    TH2F* m_diskHistosHits[8];
+
     //tracker maps for clusters
     TH2F* m_trackerLayoutClustersZR;
     TH2F* m_trackerLayoutClustersYX;
+    //tracker maps for hits
+    TH2F* m_trackerLayoutHitsZR;
+    TH2F* m_trackerLayoutHitsYX;
 
     //array of TH2F for 2xcoinc per disk per ring
     //first all coincidences
@@ -136,7 +144,7 @@ private:
     TH2F* m_diskHistos3x[8];
     //and the real ones
     TH2F* m_diskHistos3xreal[8];
-    //tracker maps for 2xcoinc
+    //tracker maps for 3xcoinc
     TH2F* m_trackerLayout3xZR;
     TH2F* m_trackerLayout3xYX;
 
@@ -147,6 +155,7 @@ private:
 
     //the number of clusters per module
     TH1F* m_nClusters;
+    TH1F* m_nHits;
 
     //cuts for the coincidence
     double m_dx;
@@ -174,28 +183,29 @@ private:
 // constructors and destructor
 //
 ITclusterAnalyzer::ITclusterAnalyzer(const edm::ParameterSet& iConfig)
-    : //m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>> ("clusters"))
-    m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("clusters")))
-    , m_tokenSimLinks(consumes<edm::DetSetVector<PixelDigiSimLink>>(iConfig.getParameter<edm::InputTag>("simlinks")))
-    , m_maxBin(iConfig.getUntrackedParameter<uint32_t>("maxBin"))
-    , m_docoincidence(iConfig.getUntrackedParameter<bool>("docoincidence"))
-    , m_dx(iConfig.getParameter<double>("dx_cut"))
-    , m_dy(iConfig.getParameter<double>("dy_cut"))
-    , m_dz(iConfig.getParameter<double>("dz_cut"))
+	: //m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>> ("clusters"))
+		m_tokenClusters(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("clusters")))
+		, m_tokenSimLinks(consumes<edm::DetSetVector<PixelDigiSimLink>>(iConfig.getParameter<edm::InputTag>("simlinks")))
+		, m_tokenDigis(consumes<edm::DetSetVector<PixelDigi>>(iConfig.getParameter<edm::InputTag>("digis"))) //adding digis variable - COB 26.02.19
+		, m_maxBin(iConfig.getUntrackedParameter<uint32_t>("maxBin"))
+		, m_docoincidence(iConfig.getUntrackedParameter<bool>("docoincidence"))
+		, m_dx(iConfig.getParameter<double>("dx_cut"))
+		, m_dy(iConfig.getParameter<double>("dy_cut"))
+		, m_dz(iConfig.getParameter<double>("dz_cut"))
 {
-    //now do what ever initialization is needed
-    m_nevents = 0;
-    m_total2xcoincidences = 0;
-    m_fake2xcoincidences = 0;
-    m_total3xcoincidences = 0;
-    m_fake3xcoincidences = 0;
+	//now do what ever initialization is needed
+	m_nevents = 0;
+	m_total2xcoincidences = 0;
+	m_fake2xcoincidences = 0;
+	m_total3xcoincidences = 0;
+	m_fake3xcoincidences = 0;
 }
 
 ITclusterAnalyzer::~ITclusterAnalyzer()
 {
 
-    // do anything here that needs to be done at desctruction time
-    // (e.g. close files, deallocate resources etc.)
+	// do anything here that needs to be done at desctruction time
+	// (e.g. close files, deallocate resources etc.)
 }
 
 //
@@ -205,87 +215,109 @@ ITclusterAnalyzer::~ITclusterAnalyzer()
 // ------------ method called once each job just before starting event loop  ------------
 void ITclusterAnalyzer::beginJob()
 {
-    edm::Service<TFileService> fs;
+	edm::Service<TFileService> fs;
 
-    fs->file().cd("/");
-    TFileDirectory td = fs->mkdir("Residuals");
+	fs->file().cd("/");
+	TFileDirectory td = fs->mkdir("Residuals");
 
-    m_residualX = td.make<TH1F>("ResidualsX", "ResidualsX;deltaX;counts", 1000, 0, 1);
-    m_residualY = td.make<TH1F>("ResidualsY", "ResidualsY;deltaY;counts", 1000, 0, 1);
-    m_residualR = td.make<TH1F>("ResidualsR", "ResidualsR;deltaR;counts", 1000, 0, 1);
+	m_residualX = td.make<TH1F>("ResidualsX", "ResidualsX;deltaX;counts", 1000, 0, 1);
+	m_residualY = td.make<TH1F>("ResidualsY", "ResidualsY;deltaY;counts", 1000, 0, 1);
+	m_residualR = td.make<TH1F>("ResidualsR", "ResidualsR;deltaR;counts", 1000, 0, 1);
 
-    fs->file().cd("/");
-    td = fs->mkdir("perModule");
-    m_nClusters = td.make<TH1F>("Number of Clusters per module per event", "# of Clusters;# of Clusters; Occurence", 500, 0, 500);
+	fs->file().cd("/");
+	td = fs->mkdir("perModule");
+	m_nClusters = td.make<TH1F>("Number of Clusters per module per event", "# of Clusters;# of Clusters; Occurence", 500, 0, 500);
+        m_nHits = td.make<TH1F>("Number of Hits per module per event", "# of Hits; # of Hits; Occurrences", 500, 0, 500);
 
-    fs->file().cd("/");
-    td = fs->mkdir("Clusters");
+	fs->file().cd("/");
+	td = fs->mkdir("Clusters");
 
-    //now lets create the histograms
-    for (unsigned int i = 0; i < 8; i++) {
-        int disk = (i < 4) ? i - 4 : i - 3;
-        std::stringstream histoname;
-        histoname << "Number of clusters for Disk " << disk << ";Ring;# of Clusters per event";
-        std::stringstream histotitle;
-        histotitle << "Number of clusters for Disk " << disk;
-        //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-        m_diskHistosCluster[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
-    }
-    m_trackerLayoutClustersZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
-    m_trackerLayoutClustersYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+	//now lets create the histograms
+	for (unsigned int i = 0; i < 8; i++) {
+		int disk = (i < 4) ? i - 4 : i - 3;
+		std::stringstream histoname;
+		histoname << "Number of clusters for Disk " << disk << ";Ring;# of Clusters per event";
+		std::stringstream histotitle;
+		histotitle << "Number of clusters for Disk " << disk;
+		//name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+		m_diskHistosCluster[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+	}
+	m_trackerLayoutClustersZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
+	m_trackerLayoutClustersYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
 
-    if (m_docoincidence) {
         fs->file().cd("/");
-        td = fs->mkdir("2xCoincidences");
-        //now lets create the histograms
+        td = fs->mkdir("Hits");
+
+        //histograms
         for (unsigned int i = 0; i < 8; i++) {
             int disk = (i < 4) ? i - 4 : i - 3;
             std::stringstream histoname;
-            histoname << "Number of 2x Coincidences for Disk " << disk << ";Ring;# of coincidences per event";
+            histoname << "Number of hits for Disk " << disk << ";Ring;# of Hits per event";
             std::stringstream histotitle;
-            histotitle << "Number of 2x Coincidences for Disk " << disk;
-            //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-            m_diskHistos2x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
-
-            std::stringstream histonamereal;
-            histonamereal << "Number of real 2x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
-            std::stringstream histotitlereal;
-            histotitlereal << "Number of real 2x Coincidences for Disk " << disk;
-            //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-            m_diskHistos2xreal[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+            histotitle << "Number of hits for Disk " << disk;
+            m_diskHistosHits[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
-        m_trackerLayout2xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
-        m_trackerLayout2xYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
-    }
 
-    if (m_docoincidence) {
-        fs->file().cd("/");
-        td = fs->mkdir("3xCoincidences");
-        //now lets create the histograms
-        for (unsigned int i = 0; i < 8; i++) {
-            int disk = (i < 4) ? i - 4 : i - 3;
-            std::stringstream histoname;
-            histoname << "Number of 3x Coincidences for Disk " << disk << ";Ring;# of coincidences per event";
-            std::stringstream histotitle;
-            histotitle << "Number of 3x Coincidences for Disk " << disk;
-            //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-            m_diskHistos3x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+        m_trackerLayoutHitsZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
+        m_trackerLayoutHitsYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
 
-            std::stringstream histonamereal;
-            histonamereal << "Number of real 3x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
-            std::stringstream histotitlereal;
-            histotitlereal << "Number of real 3x Coincidences for Disk " << disk;
-            //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-            m_diskHistos3xreal[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
-        }
-        m_trackerLayout3xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
-        m_trackerLayout3xYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
-    }
+	if (m_docoincidence) {
+		fs->file().cd("/");
+		td = fs->mkdir("2xCoincidences");
+		//now lets create the histograms
+		for (unsigned int i = 0; i < 8; i++) {
+			int disk = (i < 4) ? i - 4 : i - 3;
+			std::stringstream histoname;
+			histoname << "Number of 2x Coincidences for Disk " << disk << ";Ring;# of coincidences per event";
+			std::stringstream histotitle;
+			histotitle << "Number of 2x Coincidences for Disk " << disk;
+			//name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+			m_diskHistos2x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+
+			std::stringstream histonamereal;
+			histonamereal << "Number of real 2x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
+			std::stringstream histotitlereal;
+			histotitlereal << "Number of real 2x Coincidences for Disk " << disk;
+			//name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+			m_diskHistos2xreal[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+		}
+		m_trackerLayout2xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
+		m_trackerLayout2xYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+	}
+
+	if (m_docoincidence) {
+		fs->file().cd("/");
+		td = fs->mkdir("3xCoincidences");
+		//now lets create the histograms
+		for (unsigned int i = 0; i < 8; i++) {
+			int disk = (i < 4) ? i - 4 : i - 3;
+			std::stringstream histoname;
+			histoname << "Number of 3x Coincidences for Disk " << disk << ";Ring;# of coincidences per event";
+			std::stringstream histotitle;
+			histotitle << "Number of 3x Coincidences for Disk " << disk;
+			//name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+			m_diskHistos3x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+
+			std::stringstream histonamereal;
+			histonamereal << "Number of real 3x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
+			std::stringstream histotitlereal;
+			histotitlereal << "Number of real 3x Coincidences for Disk " << disk;
+			//name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+			m_diskHistos3xreal[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+		}
+		m_trackerLayout3xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
+		m_trackerLayout3xYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+	}
 }
 
 // ------------ method called for each event  ------------
 void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+
+    //get the digis - COB 26.02.19
+    edm::Handle<edm::DetSetVector<PixelDigi>> tdigis;
+    iEvent.getByToken(m_tokenDigis, tdigis);
+
     //get the clusters
     edm::Handle<edmNew::DetSetVector<SiPixelCluster>> tclusters;
     iEvent.getByToken(m_tokenClusters, tclusters);
@@ -308,10 +340,14 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
     tkGeom = tgeomHandle.product();
     clusters = tclusters.product();
     simlinks = tsimlinks.product();
+    digis = tdigis.product();  //pointer to digis - COB 26.02.19
 
     //a 2D counter array to count the number of clusters per disk and per ring
     unsigned int cluCounter[8][5];
     memset(cluCounter, 0, sizeof(cluCounter));
+    //counter array for hits per disk and per ring
+    unsigned int hitCounter[8][5];
+    memset(hitCounter, 0, sizeof(hitCounter));
     //counter for 2x coincidences
     unsigned int x2Counter[8][5];
     memset(x2Counter, 0, sizeof(x2Counter));
@@ -322,6 +358,80 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
     memset(x3Counter, 0, sizeof(x3Counter));
     unsigned int x3Counterreal[8][5];
     memset(x3Counterreal, 0, sizeof(x3Counterreal));
+
+    //-------------------------------------------------------------
+    //loop over digis - COB 26.02.19
+    //debugging...
+    //std::cout << "--- New event ---" << std::endl;
+    for (typename edm::DetSetVector<PixelDigi>::const_iterator DSVit = digis->begin(); DSVit != digis->end(); DSVit++) {
+
+        //get the detid
+        unsigned int rawid(DSVit->detId());
+        DetId detId(rawid);
+     
+        //debugging...
+        //std::cout << "DetId " << std::hex << "0x" << rawid << std::dec << " " << detId.det() << " " << detId.subdetId() << " " 
+        //          << ((rawid >> 23) & 0x3) << " " << ((rawid >> 18) & 0xF) << " " << ((rawid >> 12) & 0x3F) << " " << ((rawid >> 2) & 0xFF) << std::endl;
+        //std::cout << "side " << tTopo->pxfSide(detId) << " layer " << tTopo->pxfDisk(detId) << " ring " << tTopo->pxfBlade(detId) 
+        //          << " module " << tTopo->pxfModule(detId) << std::endl;       
+
+        //module type => need phase 2 pixel forward module, in endcap
+        TrackerGeometry::ModuleType mType = tkGeom->getDetectorType(detId);
+        if (mType != TrackerGeometry::ModuleType::Ph2PXF && detId.subdetId() != PixelSubdetector::PixelEndcap) 
+            continue;
+
+        //obtaining side, disk, ring of module
+        unsigned int side = (tTopo->pxfSide(detId));   
+        unsigned int disk = (tTopo->pxfDisk(detId));
+        unsigned int ring = (tTopo->pxfBlade(detId));
+
+        //look only at TEPX modules
+        if (disk < 9)
+            continue; 
+
+        //index in histogram map
+        int hist_id = -1;
+        unsigned int ring_id = ring - 1;
+        if (side == 1) {
+            //this is a TEPX- hit on side1
+            hist_id = disk - 9;
+        } else if (side == 2) {
+            //this is a TEPX+ hit on side 2
+            hist_id = 4 + disk - 9;
+        }
+
+        //find the geometry of the module associated to the digi
+        const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
+        if (!geomDetUnit)
+            continue;
+
+        //store the total number of digis in module
+        m_nHits->Fill(DSVit->size());
+
+        //loop over the digis in each module
+        for (edm::DetSet<PixelDigi>::const_iterator digit = DSVit->begin(); digit != DSVit->end(); digit++) {
+
+            hitCounter[hist_id][ring_id]++;
+
+            //finding the position of the hit
+            MeasurementPoint mpHit(digit->row(), digit->column());
+            Local3DPoint localPosHit = geomDetUnit->topology().localPosition(mpHit);
+            Global3DPoint globalPosHit = geomDetUnit->surface().toGlobal(localPosHit);
+
+            //debugging...
+            //std::cout << "---- Hit info:" << std::endl;
+            //std::cout << "measurement point of hit => row " << digit->row() << " column " << digit->column() << std::endl;
+            //std::cout << "local position of hit => x " << localPosHit.x() << " y " << localPosHit.y() << " z " << localPosHit.z() << std::endl;
+            //std::cout << "global position of hit => x " << globalPosHit.x() << " y " << globalPosHit.y() << " z " << globalPosHit.z() << std::endl;
+
+            //fill layout histograms
+            m_trackerLayoutHitsZR->Fill(globalPosHit.z(), globalPosHit.perp());
+            m_trackerLayoutHitsYX->Fill(globalPosHit.x(), globalPosHit.y());
+
+        }
+
+    }
+    //-------------------------------------------------------------
 
     //loop the modules in the cluster collection
     for (typename edmNew::DetSetVector<SiPixelCluster>::const_iterator DSVit = clusters->begin(); DSVit != clusters->end(); DSVit++) {
@@ -450,12 +560,13 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
         } //end of cluster loop
     }     //end of module loop
 
-    //ok, now I know the number of clusters per ring per disk and should fill the histogram once for this event
+    //ok, now I know the number of clusters/hits per ring per disk and should fill the histogram once for this event
     for (unsigned int i = 0; i < 8; i++) {
         //loop the disks
         for (unsigned int j = 0; j < 5; j++) {
             //and the rings
             m_diskHistosCluster[i]->Fill(j + 1, cluCounter[i][j]);
+            m_diskHistosHits[i]->Fill(j + 1, hitCounter[i][j]);
             if (m_docoincidence) {
                 m_diskHistos2x[i]->Fill(j + 1, x2Counter[i][j]);
                 m_diskHistos2xreal[i]->Fill(j + 1, x2Counterreal[i][j]);
@@ -471,8 +582,10 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
 void ITclusterAnalyzer::endJob()
 {
     std::cout << "IT cluster Analyzer processed " << m_nevents << " events!" << std::endl;
-    std::cout << "IT cluster Analyzer found " << m_fake2xcoincidences / (double)m_total2xcoincidences * 100 << "\% fake double coincidences." << std::endl;
-    std::cout << "IT cluster Analyzer found " << m_fake3xcoincidences / (double)m_total3xcoincidences * 100 << "\% fake triple coincidences." << std::endl;
+    if (m_docoincidence) {
+        std::cout << "IT cluster Analyzer found " << m_fake2xcoincidences / (double)m_total2xcoincidences * 100 << "\% fake double coincidences." << std::endl;
+        std::cout << "IT cluster Analyzer found " << m_fake3xcoincidences / (double)m_total3xcoincidences * 100 << "\% fake triple coincidences." << std::endl;
+    }
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
