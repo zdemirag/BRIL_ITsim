@@ -281,7 +281,7 @@ elif observable == "Hits":
             print("Not a root file, skipping")
             continue
 
-    rootfile = root.TFile("Results_Hits.root","RECREATE")
+    rootfile = root.TFile("Results_Hits.root","UPDATE")
     index = 1
     for i in range(disks):
         for j in range(rings):
