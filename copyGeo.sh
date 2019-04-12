@@ -15,24 +15,24 @@ do
             ;;
     esac
 done
-echo SOURCE = ${SOURCE}
-echo DESTINATION = ${DESTINATION}
 
+echo SOURCE = ${CMSSW_BASE}/${SOURCE}
+echo DESTINATION = ${CMSSW_BASE}/${DESTINATION}
 
 #this is the Tracker Common Data
-cp --verbose ${SOURCE}/pixbar.xml ${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
-cp --verbose ${SOURCE}/pixel.xml ${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
-cp --verbose ${SOURCE}/pixelStructureTopology.xml ${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
-cp --verbose ${SOURCE}/pixfwd.xml ${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
-cp --verbose ${SOURCE}/tracker.xml ${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
-cp --verbose ${SOURCE}/trackerStructureTopology.xml ${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/pixbar.xml ${CMSSW_BASE}/${DESTINATION}Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/pixel.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/pixelStructureTopology.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/pixfwd.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/tracker.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/trackerStructureTopology.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerCommonData/data/PhaseII/TiltedTracker404/
 #now the Tracker Reco Data
-cp --verbose ${SOURCE}/trackerRecoMaterial.xml ${DESTINATION}/Geometry/TrackerRecoData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/trackerRecoMaterial.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerRecoData/data/PhaseII/TiltedTracker404/
 # now the Tracker Sim Data
-cp --verbose ${SOURCE}/pixelProdCuts.xml ${DESTINATION}/Geometry/TrackerSimData/data/PhaseII/TiltedTracker404/
-cp --verbose ${SOURCE}/pixelsens.xml ${DESTINATION}/Geometry/TrackerSimData/data/PhaseII/TiltedTracker404/
-cp --verbose ${SOURCE}/trackerProdCuts.xml ${DESTINATION}/Geometry/TrackerSimData/data/PhaseII/TiltedTracker404/
-cp --verbose ${SOURCE}/trackersens.xml ${DESTINATION}/Geometry/TrackerSimData/data/PhaseII/TiltedTracker404/
-cp --verbose ${SOURCE}/PixelSkimmedGeometryT6.txt ${DESTINATION}/SLHCUpgradeSimulations/Geometry/data/PhaseII/Tilted/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/pixelProdCuts.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerSimData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/pixelsens.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerSimData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/trackerProdCuts.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerSimData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/trackersens.xml ${CMSSW_BASE}/${DESTINATION}/Geometry/TrackerSimData/data/PhaseII/TiltedTracker404/
+cp --verbose ${CMSSW_BASE}/${SOURCE}/PixelSkimmedGeometryT6.txt ${CMSSW_BASE}/${DESTINATION}/SLHCUpgradeSimulations/Geometry/data/PhaseII/Tilted/
 
 
